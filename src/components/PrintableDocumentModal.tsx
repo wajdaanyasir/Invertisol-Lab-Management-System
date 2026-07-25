@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { Printer, X, Share2, Zap, CheckCircle2 } from 'lucide-react';
+import { Printer, X, Share2, Zap, Download, Loader2, CheckCircle2 } from 'lucide-react';
 
 export const PrintableDocumentModal: React.FC = () => {
   const {
@@ -12,14 +12,129 @@ export const PrintableDocumentModal: React.FC = () => {
     printDocumentType,
     setPrintDocumentType,
     appLogo,
+    labHelplinePhone,
+    labAddress,
   } = useApp();
+
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   const jobToPrint = jobs.find((j) => j.id === selectedPrintJob?.id) || selectedPrintJob;
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setSelectedPrintJob(null);
+        setPrintReportData(null);
+        setPrintDocumentType(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [setSelectedPrintJob, setPrintReportData, setPrintDocumentType]);
+
   if (!printDocumentType || (!jobToPrint && !printReportData)) return null;
 
+  const openPrintPopup = () => {
+    const printableArea = document.getElementById('printable-area');
+    if (!printableArea) {
+      window.print();
+      return;
+    }
+
+    const title = jobToPrint
+      ? `InvertiSOL_${printDocumentType}_${jobToPrint.trackingId}`
+      : `InvertiSOL_${printReportData?.reportType || 'Document'}`;
+
+    const printWin = window.open('', '_blank', 'width=900,height=1000');
+    if (!printWin) {
+      window.print();
+      return;
+    }
+
+    printWin.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>${title}</title>
+          <script src="https://cdn.tailwindcss.com"></script>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+            body {
+              font-family: 'Plus Jakarta Sans', sans-serif;
+              background: #ffffff;
+              color: #0f172a;
+              margin: 0;
+              padding: 24px;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+            @media print {
+              body { padding: 0; }
+            }
+          </style>
+        </head>
+        <body>
+          <div style="max-width: 800px; margin: 0 auto;">
+            ${printableArea.innerHTML}
+          </div>
+          <script>
+            window.addEventListener('load', () => {
+              setTimeout(() => {
+                window.focus();
+                window.print();
+              }, 300);
+            });
+          </script>
+        </body>
+      </html>
+    `);
+    printWin.document.close();
+  };
+
   const handlePrint = () => {
-    window.print();
+    try {
+      window.focus();
+      const isIframe = window.self !== window.top;
+      if (isIframe) {
+        openPrintPopup();
+      } else {
+        window.print();
+      }
+    } catch (err) {
+      console.warn('Direct print failed, opening print popup:', err);
+      openPrintPopup();
+    }
+  };
+
+  const handleSavePDF = async () => {
+    const element = document.getElementById('printable-area');
+    if (!element) return;
+
+    setIsGeneratingPDF(true);
+
+    const docName = jobToPrint
+      ? `InvertiSOL_${printDocumentType}_${jobToPrint.trackingId}`
+      : `InvertiSOL_${printReportData?.reportType || 'Report'}_${new Date().toISOString().slice(0, 10)}`;
+
+    try {
+      const html2pdfModule = await import('html2pdf.js');
+      const html2pdf = html2pdfModule.default || html2pdfModule;
+
+      const opt = {
+        margin: [8, 8, 8, 8],
+        filename: `${docName}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      };
+
+      await (html2pdf as any)().set(opt).from(element).save();
+    } catch (err) {
+      console.warn('PDF export error, falling back to print popup:', err);
+      openPrintPopup();
+    } finally {
+      setIsGeneratingPDF(false);
+    }
   };
 
   const handleWhatsAppShare = () => {
@@ -75,19 +190,26 @@ export const PrintableDocumentModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full text-slate-900 border border-slate-200 overflow-hidden my-8">
+    <div
+      className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto print:p-0 print:bg-white"
+      onClick={closeModal}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full text-slate-900 border border-slate-200 overflow-hidden my-8 relative print:my-0 print:border-none print:shadow-none"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Top Control Bar (Screen only) */}
-        <div className="bg-slate-900 text-white px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3 print:hidden">
+        <div className="bg-slate-900 text-white px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3 print:hidden border-b border-slate-800">
           <div className="flex items-center gap-2">
             <Zap className="w-5 h-5 text-amber-400 fill-current" />
-            <span className="font-bold text-sm">
+            <span className="font-bold text-sm tracking-wide">
               InvertiSOL Printable Document Preview
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
+              type="button"
               onClick={handleWhatsAppShare}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer"
             >
@@ -95,17 +217,39 @@ export const PrintableDocumentModal: React.FC = () => {
               <span>Share WhatsApp</span>
             </button>
             <button
-              onClick={handlePrint}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-lg text-xs font-bold transition-colors cursor-pointer shadow-md"
+              type="button"
+              onClick={handleSavePDF}
+              disabled={isGeneratingPDF}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white rounded-lg text-xs font-bold transition-all cursor-pointer shadow-md"
             >
-              <Printer className="w-3.5 h-3.5" />
-              <span>Print / Save PDF</span>
+              {isGeneratingPDF ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Saving PDF...</span>
+                </>
+              ) : (
+                <>
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Download PDF</span>
+                </>
+              )}
             </button>
             <button
-              onClick={closeModal}
-              className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 cursor-pointer"
+              type="button"
+              onClick={handlePrint}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-lg text-xs font-bold transition-colors cursor-pointer shadow-md"
             >
-              <X className="w-5 h-5" />
+              <Printer className="w-3.5 h-3.5" />
+              <span>Print Document</span>
+            </button>
+            <button
+              type="button"
+              onClick={closeModal}
+              title="Close Preview (ESC)"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer shadow-md ml-1"
+            >
+              <X className="w-4 h-4" />
+              <span>Close</span>
             </button>
           </div>
         </div>
@@ -174,7 +318,7 @@ export const PrintableDocumentModal: React.FC = () => {
                   Solar Inverter Repairing & Maintenance Specialists
                 </p>
                 <p className="text-[11px] text-slate-500">
-                  Main Service Center | Helpline: +92 345 5390396 | Islamabad & Rawalpindi
+                  {labAddress} | Helpline: {labHelplinePhone}
                 </p>
               </div>
             </div>
@@ -309,44 +453,27 @@ export const PrintableDocumentModal: React.FC = () => {
 
               <div>
                 <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-2">
-                  1. Replacement Parts & Materials Used
+                  1. Replacement Parts & Materials Cost
                 </h3>
-                <table className="w-full text-xs text-left border border-slate-200 rounded-lg overflow-hidden">
-                  <thead className="bg-slate-100 text-slate-700 font-semibold border-b border-slate-200">
-                    <tr>
-                      <th className="p-2.5">Item Name</th>
-                      <th className="p-2.5 text-right">Unit Price</th>
-                      <th className="p-2.5 text-center">Qty</th>
-                      <th className="p-2.5 text-right">Total Price</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200">
-                    {jobToPrint.consumedInventory.length === 0 ? (
-                      <tr>
-                        <td colSpan={4} className="p-3 text-center text-slate-500 italic">
-                          No spare parts consumed (Service/Labor repair only)
-                        </td>
-                      </tr>
-                    ) : (
-                      jobToPrint.consumedInventory.map((ci, idx) => (
-                        <tr key={idx} className="hover:bg-slate-50">
-                          <td className="p-2.5 font-medium">{ci.itemName}</td>
-                          <td className="p-2.5 text-right font-mono">Rs. {ci.unitPrice.toLocaleString()}</td>
-                          <td className="p-2.5 text-center font-bold">{ci.qty}</td>
-                          <td className="p-2.5 text-right font-mono font-bold">Rs. {ci.totalCost.toLocaleString()}</td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                  <tfoot className="bg-slate-50 border-t font-bold">
-                    <tr>
-                      <td colSpan={3} className="p-2.5 text-right">Total Inventory Material Cost:</td>
-                      <td className="p-2.5 text-right font-mono text-slate-900">
-                        Rs. {jobToPrint.totalInventoryCost.toLocaleString()}
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
+                <div className="border border-slate-200 rounded-lg p-3 text-xs bg-slate-50/50">
+                  <div className="flex justify-between items-center font-bold text-slate-900">
+                    <div>
+                      <span className="text-sm font-bold text-slate-900">Items / Replacement Parts Cost:</span>
+                      {jobToPrint.consumedInventory && jobToPrint.consumedInventory.length > 0 ? (
+                        <p className="text-[11px] font-normal text-slate-600 mt-0.5">
+                          Replaced Parts: {jobToPrint.consumedInventory.map((ci) => `${ci.itemName} (x${ci.qty})`).join(', ')}
+                        </p>
+                      ) : (
+                        <p className="text-[11px] font-normal text-slate-500 italic mt-0.5">
+                          No spare parts consumed (Labor/Service repair only)
+                        </p>
+                      )}
+                    </div>
+                    <span className="font-mono text-sm font-bold text-slate-900">
+                      Rs. {jobToPrint.totalInventoryCost.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
               </div>
 
               <div>
@@ -354,24 +481,52 @@ export const PrintableDocumentModal: React.FC = () => {
                   2. Service & Maintenance Charges
                 </h3>
                 <div className="border border-slate-200 rounded-lg p-3 space-y-2 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-slate-600">Bench Repairing & Testing Labor Cost:</span>
+                  <div className="flex justify-between font-semibold text-slate-800">
+                    <span>Bench Repairing & Testing Labor Cost:</span>
                     <span className="font-mono font-bold">Rs. {jobToPrint.repairCost.toLocaleString()}</span>
                   </div>
+
+                  {jobToPrint.referralCost > 0 && (
+                    <div className="flex justify-between font-semibold text-slate-800 border-t border-slate-100 pt-1.5">
+                      <span>Referral & Booking Partner Fee:</span>
+                      <span className="font-mono font-bold text-slate-900">Rs. {jobToPrint.referralCost.toLocaleString()}</span>
+                    </div>
+                  )}
+
+                  {/* Additional Cost Heads */}
+                  {jobToPrint.additionalCostHeads && jobToPrint.additionalCostHeads.length > 0 && (
+                    jobToPrint.additionalCostHeads.map((head) => (
+                      <div key={head.id} className="flex justify-between font-semibold text-slate-800 border-t border-slate-100 pt-1.5">
+                        <span>{head.name}:</span>
+                        <span className="font-mono font-bold text-slate-900">Rs. {Number(head.amount).toLocaleString()}</span>
+                      </div>
+                    ))
+                  )}
+
                   {jobToPrint.pickupCost > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-slate-600">Pick Up Charges:</span>
+                    <div className="flex justify-between text-slate-700 font-medium">
+                      <span>Pick Up Charges:</span>
                       <span className="font-mono font-bold">Rs. {jobToPrint.pickupCost.toLocaleString()}</span>
                     </div>
                   )}
                   {jobToPrint.deliveryCost > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-slate-600">Delivery Charges:</span>
+                    <div className="flex justify-between text-slate-700 font-medium">
+                      <span>Delivery Charges:</span>
                       <span className="font-mono font-bold">Rs. {jobToPrint.deliveryCost.toLocaleString()}</span>
                     </div>
                   )}
                 </div>
               </div>
+
+              {/* Technician Remarks on Printable Bill */}
+              {jobToPrint.repairRemarks && (
+                <div className="bg-amber-50/80 border border-amber-200 p-3 rounded-lg text-xs space-y-0.5">
+                  <span className="font-bold text-amber-900 uppercase text-[10px] tracking-wider block">
+                    Lab Technician Repair Note / Remarks:
+                  </span>
+                  <p className="text-amber-950 italic">{jobToPrint.repairRemarks}</p>
+                </div>
+              )}
 
               <div className="bg-slate-900 text-white p-5 rounded-xl flex items-center justify-between shadow-md">
                 <div>
@@ -726,7 +881,32 @@ export const PrintableDocumentModal: React.FC = () => {
           {/* Footer Statement */}
           <div className="border-t pt-4 text-center text-[10px] text-slate-500">
             <p className="font-bold text-slate-700">This is an official System Generated Document by InvertiSOL Repairing Labs Engine.</p>
-            <p>For questions or assistance, please contact +92 345 5390396.</p>
+            <p>For questions or assistance, please contact {labHelplinePhone}.</p>
+          </div>
+        </div>
+
+        {/* Bottom Exit Control Bar (Screen only) */}
+        <div className="bg-slate-900 px-6 py-4 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3 print:hidden">
+          <div className="text-xs text-slate-400 font-medium">
+            Done reviewing? Click <span className="text-rose-400 font-bold">Close</span> or press anywhere outside to exit preview.
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handlePrint}
+              className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span>Print Document</span>
+            </button>
+            <button
+              type="button"
+              onClick={closeModal}
+              className="px-5 py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-colors cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+              <span>Close / Exit Preview</span>
+            </button>
           </div>
         </div>
       </div>

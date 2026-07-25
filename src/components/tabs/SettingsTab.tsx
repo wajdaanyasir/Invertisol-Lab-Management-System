@@ -24,6 +24,10 @@ import {
   Upload,
   RotateCcw,
   Zap,
+  PhoneCall,
+  MapPin,
+  Save,
+  Phone,
 } from 'lucide-react';
 import { UserRole } from '../../types';
 
@@ -52,6 +56,9 @@ export const SettingsTab: React.FC = () => {
     setLanguage,
     appLogo,
     setAppLogo,
+    labHelplinePhone,
+    labAddress,
+    updateLabContactInfo,
     t,
   } = useApp();
 
@@ -63,6 +70,23 @@ export const SettingsTab: React.FC = () => {
   const [bankToDelete, setBankToDelete] = useState<{ id: string; name: string } | null>(null);
   const [walletToDelete, setWalletToDelete] = useState<{ id: string; name: string } | null>(null);
   const [userToDelete, setUserToDelete] = useState<{ id: string; name: string } | null>(null);
+
+  // Home Page Contact Info & Address State
+  const [phoneInput, setPhoneInput] = useState(labHelplinePhone);
+  const [addressInput, setAddressInput] = useState(labAddress);
+  const [contactSavedSuccess, setContactSavedSuccess] = useState(false);
+
+  React.useEffect(() => {
+    setPhoneInput(labHelplinePhone);
+    setAddressInput(labAddress);
+  }, [labHelplinePhone, labAddress]);
+
+  const handleSaveContactInfo = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateLabContactInfo(phoneInput, addressInput);
+    setContactSavedSuccess(true);
+    setTimeout(() => setContactSavedSuccess(false), 3500);
+  };
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -216,149 +240,221 @@ export const SettingsTab: React.FC = () => {
 
       {/* SUB-TAB 0: BRANDING, LOGO, THEME & LANGUAGE */}
       {activeSubTab === 'branding' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Logo Upload Card */}
-          <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-              <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <ImageIcon className="w-4 h-4 text-[#008b9b]" />
-                <span>InvertiSOL Custom Logo</span>
-              </h2>
-              {appLogo && (
-                <button
-                  onClick={() => setResetLogoConfirm(true)}
-                  className="flex items-center gap-1 text-xs text-rose-600 hover:text-rose-700 font-bold cursor-pointer"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Reset Default</span>
-                </button>
-              )}
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Logo Upload Card */}
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4 text-[#008b9b]" />
+                  <span>InvertiSOL Custom Logo</span>
+                </h2>
+                {appLogo && (
+                  <button
+                    onClick={() => setResetLogoConfirm(true)}
+                    className="flex items-center gap-1 text-xs text-rose-600 hover:text-rose-700 font-bold cursor-pointer"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Reset Default</span>
+                  </button>
+                )}
+              </div>
+
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Upload a custom PNG or SVG image logo for InvertiSOL. This logo will appear across the Navbar, Customer App View, Print Chits, and Customer Bills.
+              </p>
+
+              {/* Logo Preview Box */}
+              <div className="bg-slate-50 border-2 border-dashed border-slate-300 rounded-2xl p-6 text-center space-y-3">
+                {appLogo ? (
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Active Logo Preview</p>
+                    <img
+                      src={appLogo}
+                      alt="Uploaded Logo"
+                      className="max-h-52 w-auto max-w-[360px] mx-auto object-contain bg-white p-4 rounded-2xl border-2 border-slate-300 shadow-lg ring-2 ring-slate-100"
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="w-12 h-12 bg-amber-400 text-slate-950 font-black rounded-2xl flex items-center justify-center mx-auto shadow-sm">
+                      S<Zap className="w-6 h-6 fill-current inline -mt-0.5" />L
+                    </div>
+                    <p className="text-xs font-bold text-slate-800">InvertiSOL Default Brand Mark</p>
+                    <p className="text-[11px] text-slate-400">No custom logo uploaded yet</p>
+                  </div>
+                )}
+
+                {/* Upload Button */}
+                <div className="pt-2">
+                  <label className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#008b9b] hover:bg-[#006673] text-white text-xs font-bold rounded-xl cursor-pointer shadow-sm transition-colors">
+                    <Upload className="w-4 h-4" />
+                    <span>Upload Logo Image</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoUpload}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+              </div>
             </div>
 
-            <p className="text-xs text-slate-500 leading-relaxed">
-              Upload a custom PNG or SVG image logo for InvertiSOL. This logo will appear across the Navbar, Customer App View, Print Chits, and Customer Bills.
-            </p>
+            {/* Theme & Language Preferences Card */}
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-6">
+              <h2 className="text-sm font-bold text-slate-900 border-b border-slate-200 pb-3 flex items-center gap-2">
+                <Globe className="w-4 h-4 text-[#008b9b]" />
+                <span>Theme & Language Configuration</span>
+              </h2>
 
-            {/* Logo Preview Box */}
-            <div className="bg-slate-50 border-2 border-dashed border-slate-300 rounded-2xl p-6 text-center space-y-3">
-              {appLogo ? (
-                <div className="space-y-2">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Active Logo Preview</p>
-                  <img
-                    src={appLogo}
-                    alt="Uploaded Logo"
-                    className="max-h-52 w-auto max-w-[360px] mx-auto object-contain bg-white p-4 rounded-2xl border-2 border-slate-300 shadow-lg ring-2 ring-slate-100"
-                  />
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <div className="w-12 h-12 bg-amber-400 text-slate-950 font-black rounded-2xl flex items-center justify-center mx-auto shadow-sm">
-                    S<Zap className="w-6 h-6 fill-current inline -mt-0.5" />L
-                  </div>
-                  <p className="text-xs font-bold text-slate-800">InvertiSOL Default Brand Mark</p>
-                  <p className="text-[11px] text-slate-400">No custom logo uploaded yet</p>
-                </div>
-              )}
+              {/* Language Switcher */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-slate-700">Application Language (زبان)</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setLanguage('en')}
+                    className={`p-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                      language === 'en'
+                        ? 'bg-[#008b9b] text-white border-[#007280] shadow-sm'
+                        : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    <Globe className="w-4 h-4" />
+                    <span>English (Default)</span>
+                  </button>
 
-              {/* Upload Button */}
-              <div className="pt-2">
-                <label className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#008b9b] hover:bg-[#006673] text-white text-xs font-bold rounded-xl cursor-pointer shadow-sm transition-colors">
-                  <Upload className="w-4 h-4" />
-                  <span>Upload Logo Image</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleLogoUpload}
-                    className="hidden"
-                  />
-                </label>
+                  <button
+                    type="button"
+                    onClick={() => setLanguage('ur')}
+                    className={`p-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                      language === 'ur'
+                        ? 'bg-[#008b9b] text-white border-[#007280] shadow-sm'
+                        : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    <Globe className="w-4 h-4 text-amber-300" />
+                    <span>اردو (Urdu RTL)</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Theme Selector */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-slate-700">Visual App Theme</label>
+                <div className="grid grid-cols-3 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setAppTheme('light')}
+                    className={`p-3 rounded-xl border text-xs font-bold flex flex-col items-center gap-1.5 transition-all cursor-pointer ${
+                      appTheme === 'light'
+                        ? 'bg-amber-400 text-slate-950 border-amber-500 shadow-sm'
+                        : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    <Sun className="w-5 h-5" />
+                    <span>Light Theme</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setAppTheme('dark')}
+                    className={`p-3 rounded-xl border text-xs font-bold flex flex-col items-center gap-1.5 transition-all cursor-pointer ${
+                      appTheme === 'dark'
+                        ? 'bg-slate-900 text-amber-300 border-slate-800 shadow-sm'
+                        : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    <Moon className="w-5 h-5" />
+                    <span>Dark Theme</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setAppTheme('solar')}
+                    className={`p-3 rounded-xl border text-xs font-bold flex flex-col items-center gap-1.5 transition-all cursor-pointer ${
+                      appTheme === 'solar'
+                        ? 'bg-[#008b9b] text-white border-[#007280] shadow-sm'
+                        : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    <Palette className="w-5 h-5" />
+                    <span>Solar Teal</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Theme & Language Preferences Card */}
-          <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-6">
-            <h2 className="text-sm font-bold text-slate-900 border-b border-slate-200 pb-3 flex items-center gap-2">
-              <Globe className="w-4 h-4 text-[#008b9b]" />
-              <span>Theme & Language Configuration</span>
-            </h2>
-
-            {/* Language Switcher */}
-            <div className="space-y-2">
-              <label className="block text-xs font-bold text-slate-700">Application Language (زبان)</label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setLanguage('en')}
-                  className={`p-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                    language === 'en'
-                      ? 'bg-[#008b9b] text-white border-[#007280] shadow-sm'
-                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                  }`}
-                >
-                  <Globe className="w-4 h-4" />
-                  <span>English (Default)</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setLanguage('ur')}
-                  className={`p-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                    language === 'ur'
-                      ? 'bg-[#008b9b] text-white border-[#007280] shadow-sm'
-                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                  }`}
-                >
-                  <Globe className="w-4 h-4 text-amber-300" />
-                  <span>اردو (Urdu RTL)</span>
-                </button>
-              </div>
+          {/* Home Page Contact Helpline & Lab Address Settings Card */}
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <PhoneCall className="w-4 h-4 text-[#008b9b]" />
+                <span>Home Page Mobile Number & Lab Address Branding</span>
+              </h2>
+              {contactSavedSuccess && (
+                <span className="bg-emerald-100 text-emerald-800 text-[11px] font-bold px-3 py-1 rounded-full flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Saved & Applied Live!</span>
+                </span>
+              )}
             </div>
 
-            {/* Theme Selector */}
-            <div className="space-y-2">
-              <label className="block text-xs font-bold text-slate-700">Visual App Theme</label>
-              <div className="grid grid-cols-3 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setAppTheme('light')}
-                  className={`p-3 rounded-xl border text-xs font-bold flex flex-col items-center gap-1.5 transition-all cursor-pointer ${
-                    appTheme === 'light'
-                      ? 'bg-amber-400 text-slate-950 border-amber-500 shadow-sm'
-                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                  }`}
-                >
-                  <Sun className="w-5 h-5" />
-                  <span>Light Theme</span>
-                </button>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Customize the Helpline Phone Number and Lab Location displayed on the Home Page, Header Badges, Print Invoices, WhatsApp links, and Page Footer.
+            </p>
 
-                <button
-                  type="button"
-                  onClick={() => setAppTheme('dark')}
-                  className={`p-3 rounded-xl border text-xs font-bold flex flex-col items-center gap-1.5 transition-all cursor-pointer ${
-                    appTheme === 'dark'
-                      ? 'bg-slate-900 text-amber-300 border-slate-800 shadow-sm'
-                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                  }`}
-                >
-                  <Moon className="w-5 h-5" />
-                  <span>Dark Theme</span>
-                </button>
+            <form onSubmit={handleSaveContactInfo} className="space-y-4 text-xs font-bold">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-slate-700 flex items-center gap-1.5">
+                    <Phone className="w-3.5 h-3.5 text-[#008b9b]" />
+                    <span>Helpline Mobile Phone Number</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={phoneInput}
+                    onChange={(e) => setPhoneInput(e.target.value)}
+                    placeholder="e.g. +92 345 5390396"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:border-[#008b9b] font-mono text-slate-900 bg-slate-50"
+                    required
+                  />
+                  <p className="text-[10px] text-slate-400 font-normal">
+                    Appears on Hero helpline badge, payment WhatsApp instructions, and customer print invoices.
+                  </p>
+                </div>
 
+                <div className="space-y-1.5">
+                  <label className="text-slate-700 flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-[#008b9b]" />
+                    <span>Main Lab Address / Location</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={addressInput}
+                    onChange={(e) => setAddressInput(e.target.value)}
+                    placeholder="e.g. Main Service Center, Koral Chowk, Islamabad"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:border-[#008b9b] text-slate-900 bg-slate-50 font-normal"
+                    required
+                  />
+                  <p className="text-[10px] text-slate-400 font-normal">
+                    Appears under Home Page header, facility badges, footer location tag, and receipt chits.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end pt-2">
                 <button
-                  type="button"
-                  onClick={() => setAppTheme('solar')}
-                  className={`p-3 rounded-xl border text-xs font-bold flex flex-col items-center gap-1.5 transition-all cursor-pointer ${
-                    appTheme === 'solar'
-                      ? 'bg-[#008b9b] text-white border-[#007280] shadow-sm'
-                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                  }`}
+                  type="submit"
+                  className="px-6 py-2.5 bg-[#008b9b] hover:bg-[#007280] text-white text-xs font-bold rounded-xl flex items-center gap-2 cursor-pointer shadow-md transition-colors"
                 >
-                  <Palette className="w-5 h-5" />
-                  <span>Solar Teal</span>
+                  <Save className="w-4 h-4" />
+                  <span>Update Contact Details</span>
                 </button>
               </div>
-            </div>
+            </form>
           </div>
         </div>
       )}

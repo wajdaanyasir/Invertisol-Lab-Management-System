@@ -3,6 +3,8 @@ import { AppProvider, useApp } from './context/AppContext';
 import { Navbar } from './components/Navbar';
 import { Sidebar } from './components/Sidebar';
 import { PrintableDocumentModal } from './components/PrintableDocumentModal';
+import { AdminLoginModal } from './components/AdminLoginModal';
+import { MarketingHomePage } from './components/MarketingHomePage';
 
 // Simplified Core Tab Components
 import { JobsHubTab } from './components/tabs/JobsHubTab';
@@ -10,7 +12,6 @@ import { ManageInventoryTab } from './components/tabs/ManageInventoryTab';
 import { CashbookTab } from './components/tabs/CashbookTab';
 import { ReportsTab } from './components/tabs/ReportsTab';
 import { SettingsTab } from './components/tabs/SettingsTab';
-import { CustomerPortal } from './components/tabs/CustomerPortal';
 
 const MainLayout: React.FC = () => {
   const { portalMode, activeTab, appTheme, language } = useApp();
@@ -70,8 +71,8 @@ const MainLayout: React.FC = () => {
       <Navbar />
 
       {portalMode === 'customer' ? (
-        <main className="flex-1 p-4 sm:p-8 flex items-center justify-center">
-          <CustomerPortal />
+        <main className="flex-1 p-4 sm:p-8 max-w-7xl mx-auto w-full">
+          <MarketingHomePage />
         </main>
       ) : (
         <div className="flex flex-1">
@@ -83,8 +84,9 @@ const MainLayout: React.FC = () => {
         </div>
       )}
 
-      {/* Global Printable Modal */}
+      {/* Global Modals */}
       <PrintableDocumentModal />
+      <AdminLoginModal />
     </div>
   );
 };

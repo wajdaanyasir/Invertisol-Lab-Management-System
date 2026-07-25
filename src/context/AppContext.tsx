@@ -6,6 +6,7 @@ import {
   JobStatus,
   InventoryItem,
   ConsumedInventoryItem,
+  AdditionalCostHead,
   CashTransaction,
   ExpenseCategory,
   ReferralFranchise,
@@ -33,6 +34,11 @@ interface AppContextType {
   // Navigation & Role State
   portalMode: 'admin' | 'customer';
   setPortalMode: (mode: 'admin' | 'customer') => void;
+  isAdminUnlocked: boolean;
+  unlockAdmin: (password: string) => boolean;
+  lockAdmin: () => void;
+  showAdminLoginModal: boolean;
+  setShowAdminLoginModal: (show: boolean) => void;
   currentUser: UserAccount;
   setCurrentUser: (user: UserAccount) => void;
   users: UserAccount[];
@@ -46,6 +52,9 @@ interface AppContextType {
   setLanguage: (lang: Language) => void;
   appLogo: string | null;
   setAppLogo: (logoDataUrl: string | null) => void;
+  labHelplinePhone: string;
+  labAddress: string;
+  updateLabContactInfo: (phone: string, address: string) => void;
   t: (key: string) => string;
 
   // Data Collections
@@ -78,7 +87,10 @@ interface AppContextType {
     referralCost: number,
     pickupCost: number,
     deliveryCost: number,
-    consumedItems?: ConsumedInventoryItem[]
+    consumedItems?: ConsumedInventoryItem[],
+    additionalCostHeads?: AdditionalCostHead[],
+    repairRemarks?: string,
+    isBillLocked?: boolean
   ) => void;
   downgradeJobStatus: (jobId: string, targetStatus: JobStatus) => void;
   confirmPayment: (
@@ -149,7 +161,37 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [portalMode, setPortalMode] = useState<'admin' | 'customer'>('admin');
+  const [portalMode, setPortalModeState] = useState<'admin' | 'customer'>('customer');
+  const [isAdminUnlocked, setIsAdminUnlocked] = useState<boolean>(() => {
+    return localStorage.getItem('invertisol_admin_unlocked') === 'true';
+  });
+  const [showAdminLoginModal, setShowAdminLoginModal] = useState<boolean>(false);
+
+  const setPortalMode = (mode: 'admin' | 'customer') => {
+    if (mode === 'admin' && !isAdminUnlocked) {
+      setShowAdminLoginModal(true);
+      return;
+    }
+    setPortalModeState(mode);
+  };
+
+  const unlockAdmin = (password: string) => {
+    const valid = ['1234', 'admin123', 'admin', '123456', 'invertisol'].includes(password.trim().toLowerCase());
+    if (valid) {
+      setIsAdminUnlocked(true);
+      localStorage.setItem('invertisol_admin_unlocked', 'true');
+      setShowAdminLoginModal(false);
+      setPortalModeState('admin');
+      return true;
+    }
+    return false;
+  };
+
+  const lockAdmin = () => {
+    setIsAdminUnlocked(false);
+    localStorage.removeItem('invertisol_admin_unlocked');
+    setPortalModeState('customer');
+  };
   const [users, setUsers] = useState<UserAccount[]>(() => {
     const saved = localStorage.getItem('invertisol_users');
     return saved ? JSON.parse(saved) : INITIAL_USERS;
@@ -222,6 +264,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [appLogo, setAppLogo] = useState<string | null>(() => {
     return localStorage.getItem('invertisol_logo') || null;
   });
+
+  const [labHelplinePhone, setLabHelplinePhone] = useState<string>(() => {
+    return localStorage.getItem('invertisol_helpline_phone') || '+92 345 5390396';
+  });
+
+  const [labAddress, setLabAddress] = useState<string>(() => {
+    return localStorage.getItem('invertisol_lab_address') || 'Main Service Center, Koral Chowk, Islamabad';
+  });
+
+  const updateLabContactInfo = (phone: string, address: string) => {
+    const trimmedPhone = phone.trim();
+    const trimmedAddr = address.trim();
+    if (trimmedPhone) {
+      setLabHelplinePhone(trimmedPhone);
+      localStorage.setItem('invertisol_helpline_phone', trimmedPhone);
+    }
+    if (trimmedAddr) {
+      setLabAddress(trimmedAddr);
+      localStorage.setItem('invertisol_lab_address', trimmedAddr);
+    }
+  };
 
   // Translation Helper Function
   const t = (key: string): string => {
@@ -440,11 +503,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     consumedItems?: { itemId: string; qty: number }[],
     technicianDispatched?: { name: string; phone: string; remarks: string }
   ) => {
+    // 1. Process inventory stock deduction cleanly outside setJobs
+    if (consumedItems && consumedItems.length > 0) {
+      setInventory((prevInv) =>
+        prevInv.map((inv) => {
+          const itemToDeduct = consumedItems.find((ci) => ci.itemId === inv.id);
+          if (itemToDeduct && itemToDeduct.qty > 0) {
+            return {
+              ...inv,
+              qtyInStock: Math.max(0, inv.qtyInStock - itemToDeduct.qty),
+            };
+          }
+          return inv;
+        })
+      );
+    }
+
+    // 2. Update job record
     setJobs((prevJobs) =>
       prevJobs.map((job) => {
         if (job.id !== jobId) return job;
 
-        let newConsumedList = [...job.consumedInventory];
+        let newConsumedList = (job.consumedInventory || []).map((ci) => ({ ...ci }));
 
         // Process inventory consumption if provided
         if (consumedItems && consumedItems.length > 0) {
@@ -455,8 +535,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               // Check if already in consumed list
               const existingIndex = newConsumedList.findIndex((ci) => ci.itemId === itemId);
               if (existingIndex >= 0) {
-                newConsumedList[existingIndex].qty += qty;
-                newConsumedList[existingIndex].totalCost += totalCost;
+                newConsumedList[existingIndex] = {
+                  ...newConsumedList[existingIndex],
+                  qty: newConsumedList[existingIndex].qty + qty,
+                  totalCost: newConsumedList[existingIndex].totalCost + totalCost,
+                };
               } else {
                 newConsumedList.push({
                   itemId,
@@ -466,13 +549,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                   totalCost,
                 });
               }
-
-              // Deduct stock from inventory
-              setInventory((prevInv) =>
-                prevInv.map((inv) =>
-                  inv.id === itemId ? { ...inv, qtyInStock: Math.max(0, inv.qtyInStock - qty) } : inv
-                )
-              );
             }
           });
         }
@@ -527,7 +603,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     referralCost: number,
     pickupCost: number,
     deliveryCost: number,
-    consumedItems?: ConsumedInventoryItem[]
+    consumedItems?: ConsumedInventoryItem[],
+    additionalCostHeads?: AdditionalCostHead[],
+    repairRemarks?: string,
+    isBillLocked?: boolean
   ) => {
     setJobs((prevJobs) =>
       prevJobs.map((job) => {
@@ -535,7 +614,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         const updatedConsumed = consumedItems || job.consumedInventory;
         const totalInventoryCost = updatedConsumed.reduce((sum, item) => sum + item.totalCost, 0);
-        const totalBillAmount = repairCost + referralCost + pickupCost + deliveryCost + totalInventoryCost;
+        const updatedCostHeads = additionalCostHeads !== undefined ? additionalCostHeads : (job.additionalCostHeads || []);
+        const totalCostHeadsAmount = updatedCostHeads.reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
+
+        const totalBillAmount = repairCost + referralCost + pickupCost + deliveryCost + totalInventoryCost + totalCostHeadsAmount;
 
         return {
           ...job,
@@ -545,8 +627,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           deliveryCost,
           consumedInventory: updatedConsumed,
           totalInventoryCost,
+          additionalCostHeads: updatedCostHeads,
+          repairRemarks: repairRemarks !== undefined ? repairRemarks : job.repairRemarks,
           totalBillAmount,
           billGenerated: true,
+          isBillLocked: isBillLocked !== undefined ? isBillLocked : true,
           billGeneratedAt: `${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString([], {
             hour: '2-digit',
             minute: '2-digit',
@@ -565,6 +650,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           ...job,
           status: targetStatus,
           billGenerated: false,
+          isBillLocked: false,
           statusHistory: [
             ...job.statusHistory,
             {
@@ -938,6 +1024,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       value={{
         portalMode,
         setPortalMode,
+        isAdminUnlocked,
+        unlockAdmin,
+        lockAdmin,
+        showAdminLoginModal,
+        setShowAdminLoginModal,
         currentUser,
         setCurrentUser,
         users,
@@ -994,6 +1085,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setLanguage,
         appLogo,
         setAppLogo,
+        labHelplinePhone,
+        labAddress,
+        updateLabContactInfo,
         t,
       }}
     >

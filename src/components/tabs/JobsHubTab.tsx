@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { ConfirmModal } from '../ConfirmModal';
-import { Job, JobStatus, ConsumedInventoryItem } from '../../types';
+import { Job, JobStatus, ConsumedInventoryItem, AdditionalCostHead } from '../../types';
 import {
   Wrench,
   Plus,
@@ -24,6 +24,8 @@ import {
   Zap,
   ArrowLeftRight,
   Camera,
+  MessageSquare,
+  Edit3,
 } from 'lucide-react';
 
 export const JobsHubTab: React.FC = () => {
@@ -83,6 +85,11 @@ export const JobsHubTab: React.FC = () => {
   const [billReferralCost, setBillReferralCost] = useState<number>(1000);
   const [billPickupCost, setBillPickupCost] = useState<number>(500);
   const [billDeliveryCost, setBillDeliveryCost] = useState<number>(500);
+  const [billConsumedInventory, setBillConsumedInventory] = useState<ConsumedInventoryItem[]>([]);
+  const [billAdditionalCostHeads, setBillAdditionalCostHeads] = useState<AdditionalCostHead[]>([]);
+  const [newHeadName, setNewHeadName] = useState<string>('');
+  const [newHeadAmount, setNewHeadAmount] = useState<string>('');
+  const [billRepairRemarks, setBillRepairRemarks] = useState<string>('');
 
   // --- Confirm Payment Modal State ---
   const [payDiscount, setPayDiscount] = useState<number>(0);
@@ -219,7 +226,45 @@ export const JobsHubTab: React.FC = () => {
     setBillReferralCost(job.referralCost || (job.referralId ? 1000 : 0));
     setBillPickupCost(job.pickupCost || 500);
     setBillDeliveryCost(job.deliveryCost || 500);
+    setBillConsumedInventory(job.consumedInventory ? job.consumedInventory.map(i => ({ ...i })) : []);
+    setBillAdditionalCostHeads(job.additionalCostHeads ? job.additionalCostHeads.map(c => ({ ...c })) : []);
+    setBillRepairRemarks(job.repairRemarks || '');
+    setNewHeadName('');
+    setNewHeadAmount('');
     setActiveModalType('bill');
+  };
+
+  const handleConsumedItemCostChange = (index: number, newCost: number) => {
+    setBillConsumedInventory((prev) => {
+      const updated = [...prev];
+      const qty = updated[index].qty || 1;
+      const validCost = isNaN(newCost) ? 0 : Math.max(0, newCost);
+      updated[index] = {
+        ...updated[index],
+        totalCost: validCost,
+        unitPrice: Math.round(validCost / qty),
+      };
+      return updated;
+    });
+  };
+
+  const handleAddAdditionalCostHead = () => {
+    if (!newHeadName.trim() || !newHeadAmount || isNaN(Number(newHeadAmount))) {
+      alert('Please enter a valid cost head name and amount.');
+      return;
+    }
+    const newHead: AdditionalCostHead = {
+      id: `cost-${Date.now()}`,
+      name: newHeadName.trim(),
+      amount: Number(newHeadAmount),
+    };
+    setBillAdditionalCostHeads((prev) => [...prev, newHead]);
+    setNewHeadName('');
+    setNewHeadAmount('');
+  };
+
+  const handleRemoveAdditionalCostHead = (id: string) => {
+    setBillAdditionalCostHeads((prev) => prev.filter((c) => c.id !== id));
   };
 
   const handleSaveBillSubmit = (e: React.FormEvent) => {
@@ -232,7 +277,10 @@ export const JobsHubTab: React.FC = () => {
       Number(billReferralCost),
       Number(billPickupCost),
       Number(billDeliveryCost),
-      activeModalJob.consumedInventory
+      billConsumedInventory,
+      billAdditionalCostHeads,
+      billRepairRemarks,
+      true
     );
 
     setSelectedPrintJob(activeModalJob);
@@ -888,10 +936,10 @@ export const JobsHubTab: React.FC = () => {
       {/* MODAL 3: GENERATE BILL */}
       {activeModalType === 'bill' && activeModalJob && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-2xl p-6 shadow-2xl relative space-y-6 my-8 text-slate-800">
+          <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-2xl p-6 shadow-2xl relative space-y-5 my-8 text-slate-800">
             <button
               onClick={() => setActiveModalType(null)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-800 p-1 rounded-lg"
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-800 p-1 rounded-lg cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -906,27 +954,50 @@ export const JobsHubTab: React.FC = () => {
             </div>
 
             <form onSubmit={handleSaveBillSubmit} className="space-y-4 text-xs">
-              {/* Parts breakdown summary */}
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
-                <div className="flex justify-between font-bold text-[#006673]">
-                  <span>Parts Cost Total:</span>
-                  <span className="font-mono">
+              {/* Parts breakdown summary with editable item prices */}
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2">
+                <div className="flex items-center justify-between font-bold text-[#006673]">
+                  <div className="flex items-center gap-1.5">
+                    <Package className="w-4 h-4" />
+                    <span>Consumed Spare Parts (Editable Billed Cost)</span>
+                  </div>
+                  <span className="font-mono text-sm font-black text-[#008b9b]">
                     Rs.{' '}
-                    {activeModalJob.consumedInventory
-                      .reduce((sum, item) => sum + item.totalCost, 0)
+                    {billConsumedInventory
+                      .reduce((sum, item) => sum + (Number(item.totalCost) || 0), 0)
                       .toLocaleString()}
                   </span>
                 </div>
-                {activeModalJob.consumedInventory.map((item, idx) => (
-                  <div key={idx} className="flex justify-between text-[11px] text-slate-600">
-                    <span>
-                      {item.itemName} (x{item.qty})
-                    </span>
-                    <span className="font-mono">Rs. {item.totalCost.toLocaleString()}</span>
+                <p className="text-[10px] text-slate-500 italic leading-tight">
+                  * Edit customer price below. Price additions increase bill total & lab profit without affecting stock catalog cost.
+                </p>
+
+                {billConsumedInventory.length === 0 ? (
+                  <p className="text-slate-400 italic text-[11px]">No spare parts consumed for this repair.</p>
+                ) : (
+                  <div className="space-y-2 pt-1">
+                    {billConsumedInventory.map((item, idx) => (
+                      <div key={idx} className="flex items-center justify-between gap-2 bg-white p-2 rounded-lg border border-slate-200 text-xs shadow-2xs">
+                        <div className="flex-1">
+                          <span className="font-bold text-slate-800">{item.itemName}</span>
+                          <span className="text-[11px] text-slate-500 ml-1.5">(Qty: {item.qty})</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[11px] text-slate-500 font-medium">Customer Bill (Rs.):</span>
+                          <input
+                            type="number"
+                            value={item.totalCost}
+                            onChange={(e) => handleConsumedItemCostChange(idx, Number(e.target.value))}
+                            className="w-24 bg-slate-50 border border-slate-300 rounded px-2 py-1 text-right font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                          />
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
 
+              {/* Bench Repair Profit & Service Costs */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-semibold text-[#006673] mb-1">Bench Repair Labor Profit *</label>
@@ -970,6 +1041,75 @@ export const JobsHubTab: React.FC = () => {
                 </div>
               </div>
 
+              {/* Additional Custom Cost Heads */}
+              <div className="space-y-2 border-t border-slate-200 pt-3">
+                <div className="flex items-center justify-between">
+                  <label className="block font-bold text-slate-800 text-xs">Additional Cost Heads (Optional)</label>
+                  <span className="text-[10px] text-teal-600 font-medium">Added to customer bill</span>
+                </div>
+
+                {billAdditionalCostHeads.length > 0 && (
+                  <div className="space-y-1.5 bg-slate-50 p-2 rounded-xl border border-slate-200">
+                    {billAdditionalCostHeads.map((c) => (
+                      <div key={c.id} className="flex items-center justify-between bg-white p-2 rounded-lg text-xs border border-slate-200">
+                        <span className="font-semibold text-slate-700">{c.name}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold text-[#008b9b]">Rs. {c.amount.toLocaleString()}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveAdditionalCostHead(c.id)}
+                            className="text-rose-500 hover:text-rose-700 cursor-pointer p-0.5"
+                            title="Remove Cost Head"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder="Cost Head Name (e.g. Diagnostic Fee, Thermal Compound)"
+                    value={newHeadName}
+                    onChange={(e) => setNewHeadName(e.target.value)}
+                    className="flex-1 bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-800 font-medium text-xs focus:ring-1 focus:ring-teal-500 focus:outline-none"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Amount (Rs.)"
+                    value={newHeadAmount}
+                    onChange={(e) => setNewHeadAmount(e.target.value)}
+                    className="w-28 bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-800 font-mono font-bold text-xs focus:ring-1 focus:ring-teal-500 focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddAdditionalCostHead}
+                    className="px-3 py-2 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-lg flex items-center gap-1 cursor-pointer transition-colors text-xs"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Repair Comments Section */}
+              <div className="space-y-1 border-t border-slate-200 pt-3">
+                <label className="block font-bold text-slate-800 text-xs flex items-center gap-1">
+                  <MessageSquare className="w-3.5 h-3.5 text-[#008b9b]" />
+                  <span>Repair Comments & Technician Notes (Shown on Customer Bill)</span>
+                </label>
+                <textarea
+                  rows={2}
+                  value={billRepairRemarks}
+                  onChange={(e) => setBillRepairRemarks(e.target.value)}
+                  placeholder="Enter notes about repair work, benchmark testing, or component replacements to display on customer bill..."
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                />
+              </div>
+
               {/* Calculated Total */}
               <div className="bg-teal-50 border border-teal-200 p-3 rounded-xl flex items-center justify-between">
                 <span className="font-bold text-[#006673] uppercase">Calculated Total Bill</span>
@@ -980,7 +1120,8 @@ export const JobsHubTab: React.FC = () => {
                     (billReferralCost || 0) +
                     (billPickupCost || 0) +
                     (billDeliveryCost || 0) +
-                    activeModalJob.consumedInventory.reduce((s, i) => s + i.totalCost, 0)
+                    billConsumedInventory.reduce((s, i) => s + (Number(i.totalCost) || 0), 0) +
+                    billAdditionalCostHeads.reduce((s, c) => s + (Number(c.amount) || 0), 0)
                   ).toLocaleString()}
                 </span>
               </div>
@@ -1001,13 +1142,13 @@ export const JobsHubTab: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setActiveModalType(null)}
-                    className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl font-semibold cursor-pointer"
+                    className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl font-semibold cursor-pointer hover:bg-slate-200"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2 bg-[#008b9b] text-white font-bold rounded-xl shadow-md cursor-pointer hover:bg-[#006673]"
+                    className="px-6 py-2 bg-[#008b9b] text-white font-bold rounded-xl shadow-md cursor-pointer hover:bg-[#006673] transition-colors"
                   >
                     Lock & Print Bill
                   </button>

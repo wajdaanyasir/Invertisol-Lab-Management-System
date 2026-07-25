@@ -35,6 +35,12 @@ export interface ConsumedInventoryItem {
   totalCost: number;
 }
 
+export interface AdditionalCostHead {
+  id: string;
+  name: string;
+  amount: number;
+}
+
 export interface Job {
   id: string; // Internal UUID
   trackingId: string; // Formatted DDMMYY0001
@@ -69,8 +75,11 @@ export interface Job {
   pickupCost: number;
   deliveryCost: number;
   totalInventoryCost: number;
+  additionalCostHeads?: AdditionalCostHead[];
+  repairRemarks?: string; // Admin notes/remarks regarding the repair for customer view
   totalBillAmount: number;
   billGenerated: boolean;
+  isBillLocked?: boolean; // When admin locks / finalizes the bill for customer view
   billGeneratedAt?: string;
 
   // Payment details

@@ -17,6 +17,9 @@ import {
   Sun,
   Moon,
   Palette,
+  Lock,
+  Home,
+  LogOut,
 } from 'lucide-react';
 import { AppTheme, Language } from '../utils/translations';
 
@@ -24,6 +27,9 @@ export const Navbar: React.FC = () => {
   const {
     portalMode,
     setPortalMode,
+    isAdminUnlocked,
+    lockAdmin,
+    setShowAdminLoginModal,
     currentUser,
     setCurrentUser,
     users,
@@ -76,19 +82,8 @@ export const Navbar: React.FC = () => {
             </div>
           </div>
 
-          {/* Center Mode Switcher: Admin vs Customer App */}
-          <div className="flex bg-[#006e7a] p-1 rounded-xl border border-teal-600/60 shadow-inner">
-            <button
-              onClick={() => setPortalMode('admin')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                portalMode === 'admin'
-                  ? 'bg-amber-400 text-slate-950 shadow-md'
-                  : 'text-teal-100 hover:text-white hover:bg-teal-700/50'
-              }`}
-            >
-              <LayoutDashboard className="w-3.5 h-3.5" />
-              <span>{t('adminPanel')}</span>
-            </button>
+          {/* Center Mode Switcher: Marketing Home vs Password-Protected Admin Panel */}
+          <div className="flex items-center bg-[#006e7a] p-1 rounded-xl border border-teal-600/60 shadow-inner gap-1">
             <button
               onClick={() => setPortalMode('customer')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
@@ -97,9 +92,41 @@ export const Navbar: React.FC = () => {
                   : 'text-teal-100 hover:text-white hover:bg-teal-700/50'
               }`}
             >
-              <Smartphone className="w-3.5 h-3.5" />
-              <span>{t('customerApp')}</span>
+              <Home className="w-3.5 h-3.5" />
+              <span>Lab Home & Tracking</span>
             </button>
+
+            <button
+              onClick={() => {
+                if (!isAdminUnlocked) {
+                  setShowAdminLoginModal(true);
+                } else {
+                  setPortalMode('admin');
+                }
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                portalMode === 'admin'
+                  ? 'bg-amber-400 text-slate-950 shadow-md'
+                  : 'text-teal-100 hover:text-white hover:bg-teal-700/50'
+              }`}
+            >
+              {isAdminUnlocked ? (
+                <ShieldCheck className="w-3.5 h-3.5 text-slate-950" />
+              ) : (
+                <Lock className="w-3.5 h-3.5 text-amber-300" />
+              )}
+              <span>Admin Panel</span>
+            </button>
+
+            {portalMode === 'admin' && isAdminUnlocked && (
+              <button
+                onClick={lockAdmin}
+                title="Lock & Exit Admin Mode"
+                className="p-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition-colors cursor-pointer ml-1"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
 
           {/* Right Header Actions */}

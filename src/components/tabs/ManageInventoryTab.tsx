@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { ConfirmModal } from '../ConfirmModal';
 import { UnitOfIssue } from '../../types';
-import { PackageCheck, Search, PlusCircle, Edit, Trash2, BarChart2, Calendar, Printer } from 'lucide-react';
+import { PackageCheck, Search, PlusCircle, Edit, Trash2, BarChart2, Calendar, Printer, X } from 'lucide-react';
 
 export const ManageInventoryTab: React.FC = () => {
   const {
@@ -19,9 +19,14 @@ export const ManageInventoryTab: React.FC = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTab, setSelectedTab] = useState<'stock' | 'stock_report' | 'consumption_report'>('stock');
-  const [itemToDelete, setItemToDelete] = useState<{ id: string; name: string } | null>(null);
 
-  // Add Stock Quantity Modal / Form
+  // Warning Confirmation States
+  const [itemToDelete, setItemToDelete] = useState<{ id: string; name: string; qtyInStock: number; unit: string; unitPrice: number } | null>(null);
+  const [pendingAddStock, setPendingAddStock] = useState<{ itemId: string; itemName: string; currentQty: number; addQty: number; unit: string } | null>(null);
+  const [pendingCreateItem, setPendingCreateItem] = useState<{ name: string; unitOfIssue: UnitOfIssue; qtyInStock: number; unitPrice: number } | null>(null);
+  const [pendingUpdateItem, setPendingUpdateItem] = useState<{ id: string; name: string; unitOfIssue: UnitOfIssue } | null>(null);
+
+  // Add Stock Quantity Form
   const [addQtyItemId, setAddQtyItemId] = useState<string>('');
   const [addQtyVal, setAddQtyVal] = useState<number>(10);
 
@@ -50,36 +55,68 @@ export const ManageInventoryTab: React.FC = () => {
 
   const totalStockValue = inventory.reduce((sum, item) => sum + item.qtyInStock * item.unitPrice, 0);
 
-  // Handle Stock Qty Addition
-  const handleAddStock = (e: React.FormEvent) => {
+  // Handle Stock Qty Addition Request (triggers warning modal)
+  const handleRequestAddStock = (e: React.FormEvent) => {
     e.preventDefault();
     if (!addQtyItemId || addQtyVal <= 0) return;
-    addInventoryStock(addQtyItemId, Number(addQtyVal));
-    alert(`Added ${addQtyVal} units to stock successfully!`);
+    const item = inventory.find((i) => i.id === addQtyItemId);
+    if (!item) return;
+
+    setPendingAddStock({
+      itemId: item.id,
+      itemName: item.name,
+      currentQty: item.qtyInStock,
+      addQty: Number(addQtyVal),
+      unit: item.unitOfIssue,
+    });
+  };
+
+  const executeAddStock = () => {
+    if (!pendingAddStock) return;
+    addInventoryStock(pendingAddStock.itemId, pendingAddStock.addQty);
+    setPendingAddStock(null);
     setAddQtyItemId('');
     setAddQtyVal(10);
   };
 
-  // Handle Super User Create Item
-  const handleCreateItem = (e: React.FormEvent) => {
+  // Handle Super User Create Item Request (triggers warning modal)
+  const handleRequestCreateItem = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newItemName) return;
-    createInventoryItem({
+
+    setPendingCreateItem({
       name: newItemName,
       unitOfIssue: newItemUnit,
       qtyInStock: Number(newItemQty),
       unitPrice: Number(newItemPrice),
     });
-    alert(`New item "${newItemName}" added to master inventory!`);
-    setNewItemName('');
   };
 
-  // Handle Edit Item
-  const handleUpdateItem = (e: React.FormEvent) => {
+  const executeCreateItem = () => {
+    if (!pendingCreateItem) return;
+    createInventoryItem(pendingCreateItem);
+    setPendingCreateItem(null);
+    setNewItemName('');
+    setNewItemPrice(100);
+    setNewItemQty(50);
+  };
+
+  // Handle Edit Item Request (triggers warning modal)
+  const handleRequestUpdateItem = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingItemId) return;
-    updateInventoryItem(editingItemId, editName, editUnit);
-    alert('Item updated successfully!');
+    if (!editingItemId || !editName) return;
+
+    setPendingUpdateItem({
+      id: editingItemId,
+      name: editName,
+      unitOfIssue: editUnit,
+    });
+  };
+
+  const executeUpdateItem = () => {
+    if (!pendingUpdateItem) return;
+    updateInventoryItem(pendingUpdateItem.id, pendingUpdateItem.name, pendingUpdateItem.unitOfIssue);
+    setPendingUpdateItem(null);
     setEditingItemId(null);
   };
 
@@ -212,12 +249,14 @@ export const ManageInventoryTab: React.FC = () => {
                                 setEditUnit(item.unitOfIssue);
                               }}
                               className="p-1 text-slate-400 hover:text-amber-600 cursor-pointer"
+                              title="Edit Item Details"
                             >
                               <Edit className="w-3.5 h-3.5" />
                             </button>
                             <button
-                              onClick={() => setItemToDelete({ id: item.id, name: item.name })}
+                              onClick={() => setItemToDelete({ id: item.id, name: item.name, qtyInStock: item.qtyInStock, unit: item.unitOfIssue, unitPrice: item.unitPrice })}
                               className="p-1 text-slate-400 hover:text-rose-600 cursor-pointer"
+                              title="Delete Item"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -234,7 +273,7 @@ export const ManageInventoryTab: React.FC = () => {
           {/* Right Col: Add Stock (Normal & Super) / Super User Add Item */}
           <div className="space-y-6">
             {/* Form A: Add Stock Qty (All Users) */}
-            <form onSubmit={handleAddStock} className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm space-y-4">
+            <form onSubmit={handleRequestAddStock} className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm space-y-4">
               <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-200 pb-2">
                 <PlusCircle className="w-4 h-4 text-[#008b9b]" />
                 <span>Add Stock Quantity</span>
@@ -251,7 +290,7 @@ export const ManageInventoryTab: React.FC = () => {
                     <option value="">-- Choose Item --</option>
                     {inventory.map((i) => (
                       <option key={i.id} value={i.id}>
-                        {i.name} (Current: {i.qtyInStock})
+                        {i.name} (Current: {i.qtyInStock} {i.unitOfIssue})
                       </option>
                     ))}
                   </select>
@@ -271,16 +310,17 @@ export const ManageInventoryTab: React.FC = () => {
 
                 <button
                   type="submit"
-                  className="w-full py-2.5 bg-[#008b9b] hover:bg-[#006673] text-white font-bold text-xs rounded-xl shadow-sm cursor-pointer transition-colors"
+                  className="w-full py-2.5 bg-[#008b9b] hover:bg-[#006673] text-white font-bold text-xs rounded-xl shadow-sm cursor-pointer transition-colors flex items-center justify-center gap-1.5"
                 >
-                  Update Stock Level
+                  <PlusCircle className="w-3.5 h-3.5" />
+                  <span>Update Stock Level</span>
                 </button>
               </div>
             </form>
 
             {/* Form B: Super User Add New Master Item */}
             {currentUser.role === 'super' && (
-              <form onSubmit={handleCreateItem} className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm space-y-4">
+              <form onSubmit={handleRequestCreateItem} className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm space-y-4">
                 <h3 className="text-xs font-bold text-[#008b9b] uppercase tracking-wider border-b border-slate-200 pb-2">
                   Create New Master Item (Super User Only)
                 </h3>
@@ -519,12 +559,81 @@ export const ManageInventoryTab: React.FC = () => {
         </div>
       )}
 
-      {/* DELETE INVENTORY ITEM CONFIRMATION MODAL */}
+      {/* SUPER USER EDIT ITEM MODAL */}
+      {editingItemId && (
+        <div className="fixed inset-0 z-50 bg-slate-950/65 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <Edit className="w-4 h-4 text-[#008b9b]" />
+                <span>Edit Master Item Details</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setEditingItemId(null)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleRequestUpdateItem} className="space-y-3 text-xs">
+              <div>
+                <label className="block text-slate-700 mb-1 font-semibold">Item Name *</label>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  required
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-700 mb-1 font-semibold">Unit of Issue *</label>
+                <select
+                  value={editUnit}
+                  onChange={(e) => setEditUnit(e.target.value as UnitOfIssue)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 font-medium"
+                >
+                  <option value="Each">Each</option>
+                  <option value="By Weight (kg)">By Weight (kg)</option>
+                  <option value="By Length (meter)">By Length (meter)</option>
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingItemId(null)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-[#008b9b] hover:bg-[#007280] text-white rounded-xl font-bold shadow-sm cursor-pointer"
+                >
+                  Update Details
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 1. DELETE INVENTORY ITEM WARNING MODAL */}
       <ConfirmModal
         isOpen={!!itemToDelete}
-        title="Delete Inventory Item"
-        message={itemToDelete ? `Are you sure you want to delete inventory item "${itemToDelete.name}"? This item will be permanently removed from stock list.` : ''}
-        confirmLabel="Delete Item"
+        title="Warning: Delete Stock Master Item"
+        message={
+          itemToDelete
+            ? `Are you sure you want to permanently delete "${itemToDelete.name}" from Stock Master?\n\n• Item Name: ${itemToDelete.name}\n• Current Stock Qty: ${itemToDelete.qtyInStock} ${itemToDelete.unit}\n• Unit Price: Rs. ${itemToDelete.unitPrice.toLocaleString()}\n\nWarning: This action is permanent and will remove this item completely.`
+            : ''
+        }
+        confirmLabel="Yes, Delete Item"
+        cancelLabel="Cancel"
+        isDanger={true}
         onConfirm={() => {
           if (itemToDelete) {
             deleteInventoryItem(itemToDelete.id);
@@ -532,6 +641,54 @@ export const ManageInventoryTab: React.FC = () => {
           }
         }}
         onCancel={() => setItemToDelete(null)}
+      />
+
+      {/* 2. ADD STOCK QTY WARNING MODAL */}
+      <ConfirmModal
+        isOpen={!!pendingAddStock}
+        title="Warning: Confirm Add Stock Quantity"
+        message={
+          pendingAddStock
+            ? `Are you sure you want to add stock quantity to "${pendingAddStock.itemName}"?\n\n• Current Quantity: ${pendingAddStock.currentQty} ${pendingAddStock.unit}\n• Quantity to Add: +${pendingAddStock.addQty} ${pendingAddStock.unit}\n• New Total Quantity: ${pendingAddStock.currentQty + pendingAddStock.addQty} ${pendingAddStock.unit}`
+            : ''
+        }
+        confirmLabel="Confirm & Add Stock"
+        cancelLabel="Cancel"
+        isDanger={false}
+        onConfirm={executeAddStock}
+        onCancel={() => setPendingAddStock(null)}
+      />
+
+      {/* 3. CREATE MASTER ITEM WARNING MODAL */}
+      <ConfirmModal
+        isOpen={!!pendingCreateItem}
+        title="Warning: Add New Master Item"
+        message={
+          pendingCreateItem
+            ? `Are you sure you want to create new master item "${pendingCreateItem.name}" in Stock Master?\n\n• Unit of Issue: ${pendingCreateItem.unitOfIssue}\n• Initial Stock Qty: ${pendingCreateItem.qtyInStock}\n• Unit Price: Rs. ${pendingCreateItem.unitPrice.toLocaleString()}\n• Initial Valuation: Rs. ${(pendingCreateItem.qtyInStock * pendingCreateItem.unitPrice).toLocaleString()}`
+            : ''
+        }
+        confirmLabel="Confirm & Create Item"
+        cancelLabel="Cancel"
+        isDanger={false}
+        onConfirm={executeCreateItem}
+        onCancel={() => setPendingCreateItem(null)}
+      />
+
+      {/* 4. UPDATE MASTER ITEM WARNING MODAL */}
+      <ConfirmModal
+        isOpen={!!pendingUpdateItem}
+        title="Warning: Update Item Details"
+        message={
+          pendingUpdateItem
+            ? `Are you sure you want to update master details for "${pendingUpdateItem.name}"?\n\n• Unit of Issue: ${pendingUpdateItem.unitOfIssue}`
+            : ''
+        }
+        confirmLabel="Save Details"
+        cancelLabel="Cancel"
+        isDanger={false}
+        onConfirm={executeUpdateItem}
+        onCancel={() => setPendingUpdateItem(null)}
       />
     </div>
   );

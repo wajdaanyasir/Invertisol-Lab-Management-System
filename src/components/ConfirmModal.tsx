@@ -40,7 +40,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
           </div>
           <div className="space-y-1 pr-6">
             <h3 className="text-base font-bold text-slate-900">{title}</h3>
-            <p className="text-xs text-slate-600 leading-relaxed">{message}</p>
+            <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-line">{message}</p>
           </div>
         </div>
 
