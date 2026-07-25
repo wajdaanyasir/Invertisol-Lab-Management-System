@@ -1,0 +1,385 @@
+import {
+  InventoryItem,
+  Job,
+  CashTransaction,
+  ExpenseCategory,
+  ReferralFranchise,
+  MobileWalletAccount,
+  BankAccount,
+  ScheduleChargesConfig,
+  UserAccount,
+  AppNotification,
+} from '../types';
+
+export const INITIAL_USERS: UserAccount[] = [
+  {
+    id: 'user-super-1',
+    username: 'Super Admin (Owner)',
+    role: 'super',
+    authorizedTabs: [
+      'add_job',
+      'update_status',
+      'generate_bill',
+      'confirm_payment',
+      'job_inquiry',
+      'manage_inventory',
+      'cash_register',
+      'manage_expenses',
+      'manage_users',
+      'manage_referrals',
+      'manage_accounts',
+      'schedule_charges',
+      'reports',
+      'download_db',
+    ],
+  },
+  {
+    id: 'user-normal-1',
+    username: 'Faiq (Desk Manager)',
+    role: 'normal',
+    authorizedTabs: [
+      'add_job',
+      'update_status',
+      'generate_bill',
+      'confirm_payment',
+      'job_inquiry',
+      'manage_inventory',
+      'cash_register',
+      'add_expense',
+    ],
+  },
+  {
+    id: 'user-normal-2',
+    username: 'Tariq (Lab Tech)',
+    role: 'normal',
+    authorizedTabs: ['update_status', 'job_inquiry', 'manage_inventory'],
+  },
+];
+
+export const INITIAL_INVENTORY: InventoryItem[] = [
+  { id: 'inv-1', name: 'Resistor 100 OHM', unitOfIssue: 'Each', qtyInStock: 85, unitPrice: 25 },
+  { id: 'inv-2', name: 'MOSFET 50N06 High Power', unitOfIssue: 'Each', qtyInStock: 42, unitPrice: 350 },
+  { id: 'inv-3', name: 'Capacitor 470uF 450V', unitOfIssue: 'Each', qtyInStock: 30, unitPrice: 180 },
+  { id: 'inv-4', name: 'Copper Winding Wire 18AWG', unitOfIssue: 'By Length (meter)', qtyInStock: 120, unitPrice: 150 },
+  { id: 'inv-5', name: 'Solder Wire Sn60/Pb40', unitOfIssue: 'By Weight (kg)', qtyInStock: 15, unitPrice: 2200 },
+  { id: 'inv-6', name: 'Microcontroller Control Board IC', unitOfIssue: 'Each', qtyInStock: 18, unitPrice: 1400 },
+  { id: 'inv-7', name: 'Heat Sink Compound Paste', unitOfIssue: 'Each', qtyInStock: 25, unitPrice: 120 },
+];
+
+export const INITIAL_EXPENSE_CATEGORIES: ExpenseCategory[] = [
+  { id: 'cat-1', name: 'Electricity Bill' },
+  { id: 'cat-2', name: 'Salary & Wages' },
+  { id: 'cat-3', name: 'Shop Rent' },
+  { id: 'cat-4', name: 'Tax & Duties' },
+  { id: 'cat-5', name: 'Lab Tools & Consumables' },
+  { id: 'cat-6', name: 'Tea & Refreshments' },
+  { id: 'cat-7', name: 'Transportation & Fuel' },
+];
+
+export const INITIAL_FRANCHISES: ReferralFranchise[] = [
+  {
+    id: 'ref-1',
+    name: 'Islamabad Solar Solutions',
+    mobileNo: '0300-5551121',
+    address: 'G-9 Markaz, Islamabad',
+    referralCode: 'ISB1121',
+    cityCode: 'ISB',
+    uniqueFourDigit: '1121',
+    active: true,
+    createdAt: '2024-01-15',
+  },
+  {
+    id: 'ref-2',
+    name: 'Rawalpindi Power Hub',
+    mobileNo: '0333-2142000',
+    address: 'Saddar, Rawalpindi',
+    referralCode: 'RWP2142',
+    cityCode: 'RWP',
+    uniqueFourDigit: '2142',
+    active: true,
+    createdAt: '2024-02-10',
+  },
+  {
+    id: 'ref-3',
+    name: 'Lahore Green Energy',
+    mobileNo: '0321-3011999',
+    address: 'Gulberg III, Lahore',
+    referralCode: 'LHR3011',
+    cityCode: 'LHR',
+    uniqueFourDigit: '3011',
+    active: true,
+    createdAt: '2024-03-01',
+  },
+];
+
+export const INITIAL_WALLETS: MobileWalletAccount[] = [
+  { id: 'wal-1', walletName: 'JazzCash', accountNumber: '03455390396', accountHolderName: 'YASIR MEHMOOD' },
+  { id: 'wal-2', walletName: 'EasyPaisa', accountNumber: '03005551121', accountHolderName: 'YASIR MEHMOOD' },
+];
+
+export const INITIAL_BANKS: BankAccount[] = [
+  {
+    id: 'bank-1',
+    bankName: 'Habib Bank Limited (HBL)',
+    accountNumber: '120079008564885',
+    ibanNo: 'PAK 00HAB 120079008564885',
+    accountHolderName: 'YASIR MEHMOOD',
+  },
+  {
+    id: 'bank-2',
+    bankName: 'Meezan Bank',
+    accountNumber: '01020304050607',
+    ibanNo: 'PK09MEZN0001020304050607',
+    accountHolderName: 'InvertiSOL Repairing Labs',
+  },
+];
+
+export const INITIAL_SCHEDULE_CHARGES: ScheduleChargesConfig = {
+  pickupCharges: 500,
+  deliveryCharges: 500,
+  defaultReferralShare: 1000,
+};
+
+// Today's date helper format DDMMYY
+const today = new Date();
+const dd = String(today.getDate()).padStart(2, '0');
+const mm = String(today.getMonth() + 1).padStart(2, '0');
+const yy = String(today.getFullYear()).slice(-2);
+const datePrefix = `${dd}${mm}${yy}`;
+const todayIso = today.toISOString().split('T')[0];
+
+// Overdue date helper (3 days ago)
+const overdueDate = new Date(today);
+overdueDate.setDate(today.getDate() - 3);
+const overdueIso = overdueDate.toISOString().split('T')[0];
+
+export const INITIAL_JOBS: Job[] = [
+  {
+    id: 'job-1',
+    trackingId: `${datePrefix}0001`,
+    customerName: 'Ahmad Raza',
+    mobileNo: '0300-1234567',
+    address: 'House 42, Street 10, F-8/3, Islamabad',
+    inverterBrand: 'Inverex Nitrox 5kW',
+    inverterKva: '5.0 kVA',
+    issueDescription: 'Overload error code 04 during peak load',
+    labLocation: 'Islamabad Central Lab',
+    estimatedRepairDate: todayIso,
+    approximateCost: 8500,
+    status: 'Complaint Filed',
+    statusHistory: [
+      {
+        status: 'Complaint Filed',
+        timestamp: `${todayIso} 09:15 AM`,
+        remarks: 'Filed via Customer Mobile App',
+        updatedBy: 'Customer App',
+      },
+    ],
+    consumedInventory: [],
+    referralId: 'ISB1121',
+    repairCost: 4500,
+    referralCost: 1000,
+    pickupCost: 500,
+    deliveryCost: 500,
+    totalInventoryCost: 0,
+    totalBillAmount: 6500,
+    billGenerated: false,
+    discount: 0,
+    cashPaid: 0,
+    onlinePaid: 0,
+    finalPayment: 0,
+    paymentConfirmed: false,
+    createdAt: `${todayIso}T09:15:00.000Z`,
+    createdDateOnly: todayIso,
+  },
+  {
+    id: 'job-2',
+    trackingId: `${datePrefix}0002`,
+    customerName: 'Muhammad Usman',
+    mobileNo: '0321-9876543',
+    address: 'Plot 15, Sector I-9/2, Islamabad',
+    inverterBrand: 'Crown Elego 3.2kW',
+    inverterKva: '3.2 kVA',
+    issueDescription: 'MOSFET burnout and red fault LED active',
+    labLocation: 'Islamabad Central Lab',
+    estimatedRepairDate: overdueIso, // OVERDUE!
+    approximateCost: 6000,
+    status: 'Under Maintenance',
+    statusHistory: [
+      { status: 'Complaint Filed', timestamp: `${overdueIso} 10:00 AM`, updatedBy: 'Desk Admin' },
+      {
+        status: 'Ready for Pick Up',
+        timestamp: `${overdueIso} 11:30 AM`,
+        remarks: 'Dispatched Technician Kamran (0312-5550011)',
+        updatedBy: 'Faiq (Desk)',
+      },
+      { status: 'Received and Awaiting Maintenance', timestamp: `${overdueIso} 02:00 PM`, updatedBy: 'Faiq (Desk)' },
+      { status: 'Under Maintenance', timestamp: `${overdueIso} 04:00 PM`, remarks: 'Replacing main power MOSFETs', updatedBy: 'Tariq (Lab)' },
+    ],
+    consumedInventory: [
+      { itemId: 'inv-2', itemName: 'MOSFET 50N06 High Power', qty: 4, unitPrice: 350, totalCost: 1400 },
+      { itemId: 'inv-7', itemName: 'Heat Sink Compound Paste', qty: 1, unitPrice: 120, totalCost: 120 },
+    ],
+    technicianDispatched: {
+      name: 'Kamran Tech',
+      phone: '0312-5550011',
+      dispatchDate: overdueIso,
+      remarks: 'Picked up unit from customer site in secure padding.',
+    },
+    referralId: 'ISB1121',
+    repairCost: 3500,
+    referralCost: 1000,
+    pickupCost: 500,
+    deliveryCost: 500,
+    totalInventoryCost: 1520,
+    totalBillAmount: 6520,
+    billGenerated: false,
+    discount: 0,
+    cashPaid: 0,
+    onlinePaid: 0,
+    finalPayment: 0,
+    paymentConfirmed: false,
+    createdAt: `${overdueIso}T10:00:00.000Z`,
+    createdDateOnly: overdueIso,
+  },
+  {
+    id: 'job-3',
+    trackingId: `${datePrefix}0003`,
+    customerName: 'Zubair Shah',
+    mobileNo: '0333-7778899',
+    address: 'Phase 4, Bahria Town, Rawalpindi',
+    inverterBrand: 'Homage Vertex 2.4kW',
+    inverterKva: '2.4 kVA',
+    issueDescription: 'DC bus capacitor blown during thunderstorm spike',
+    labLocation: 'Rawalpindi Satellite Lab',
+    estimatedRepairDate: todayIso,
+    approximateCost: 5500,
+    status: 'Repaired & Ready for Delivery',
+    statusHistory: [
+      { status: 'Complaint Filed', timestamp: `${todayIso} 08:30 AM`, updatedBy: 'Customer App' },
+      { status: 'Received and Awaiting Maintenance', timestamp: `${todayIso} 09:30 AM`, updatedBy: 'Faiq (Desk)' },
+      { status: 'Under Maintenance', timestamp: `${todayIso} 10:45 AM`, updatedBy: 'Tariq (Lab)' },
+      { status: 'Repaired under Test', timestamp: `${todayIso} 01:00 PM`, updatedBy: 'Tariq (Lab)' },
+      {
+        status: 'Repaired & Ready for Delivery',
+        timestamp: `${todayIso} 03:00 PM`,
+        remarks: 'Tested on 2kW load test bench for 2 hours. Normal heat dissipative range.',
+        updatedBy: 'Tariq (Lab)',
+      },
+    ],
+    consumedInventory: [
+      { itemId: 'inv-3', itemName: 'Capacitor 470uF 450V', qty: 2, unitPrice: 180, totalCost: 360 },
+      { itemId: 'inv-1', itemName: 'Resistor 100 OHM', qty: 4, unitPrice: 25, totalCost: 100 },
+    ],
+    referralId: 'RWP2142',
+    repairCost: 3500,
+    referralCost: 1000,
+    pickupCost: 500,
+    deliveryCost: 500,
+    totalInventoryCost: 460,
+    totalBillAmount: 5460,
+    billGenerated: true,
+    billGeneratedAt: `${todayIso} 03:15 PM`,
+    discount: 0,
+    cashPaid: 0,
+    onlinePaid: 0,
+    finalPayment: 0,
+    paymentConfirmed: false,
+    createdAt: `${todayIso}T08:30:00.000Z`,
+    createdDateOnly: todayIso,
+  },
+  {
+    id: 'job-4',
+    trackingId: `${datePrefix}0004`,
+    customerName: 'Hassan Ali',
+    mobileNo: '0315-4443322',
+    address: 'DHA Phase 2, Islamabad',
+    inverterBrand: 'Fronus Infini Solar 6kW',
+    inverterKva: '6.0 kVA',
+    issueDescription: 'PV input MPPT controller failure',
+    labLocation: 'Islamabad Central Lab',
+    estimatedRepairDate: todayIso,
+    approximateCost: 12000,
+    status: 'Delivered & Paid',
+    statusHistory: [
+      { status: 'Complaint Filed', timestamp: `${todayIso} 08:00 AM`, updatedBy: 'Desk Admin' },
+      { status: 'Under Maintenance', timestamp: `${todayIso} 09:00 AM`, updatedBy: 'Tariq (Lab)' },
+      { status: 'Repaired & Ready for Delivery', timestamp: `${todayIso} 11:00 AM`, updatedBy: 'Tariq (Lab)' },
+      { status: 'Delivered & Paid', timestamp: `${todayIso} 02:30 PM`, remarks: 'Paid full cash on delivery', updatedBy: 'Faiq (Desk)' },
+    ],
+    consumedInventory: [
+      { itemId: 'inv-6', itemName: 'Microcontroller Control Board IC', qty: 1, unitPrice: 1400, totalCost: 1400 },
+    ],
+    repairCost: 6500,
+    referralCost: 0,
+    pickupCost: 500,
+    deliveryCost: 500,
+    totalInventoryCost: 1400,
+    totalBillAmount: 8900,
+    billGenerated: true,
+    billGeneratedAt: `${todayIso} 11:15 AM`,
+    discount: 400,
+    cashPaid: 8500,
+    onlinePaid: 0,
+    finalPayment: 8500,
+    paymentConfirmed: true,
+    paymentConfirmedAt: `${todayIso} 02:30 PM`,
+    createdAt: `${todayIso}T08:00:00.000Z`,
+    createdDateOnly: todayIso,
+  },
+];
+
+export const INITIAL_CASH_TRANSACTIONS: CashTransaction[] = [
+  {
+    id: 'tx-1',
+    date: `${todayIso}T08:00:00.000Z`,
+    type: 'inflow',
+    account: 'counter',
+    amount: 15000,
+    category: 'Opening Balance',
+    remarks: 'Daily counter opening float',
+    performedBy: 'Faiq (Desk Manager)',
+  },
+  {
+    id: 'tx-2',
+    date: `${todayIso}T10:30:00.000Z`,
+    type: 'outflow',
+    account: 'counter',
+    amount: 1200,
+    category: 'Tea & Refreshments',
+    remarks: 'Staff tea & snacks',
+    performedBy: 'Faiq (Desk Manager)',
+  },
+  {
+    id: 'tx-3',
+    date: `${todayIso}T14:30:00.000Z`,
+    type: 'inflow',
+    account: 'counter',
+    amount: 8500,
+    category: 'Customer Payment',
+    jobId: 'job-4',
+    remarks: 'Cash payment for Job #2407260004 (Hassan Ali)',
+    performedBy: 'Faiq (Desk Manager)',
+  },
+];
+
+export const INITIAL_NOTIFICATIONS: AppNotification[] = [
+  {
+    id: 'notif-1',
+    title: 'Overdue Repair Alert!',
+    message: `Job #${INITIAL_JOBS[1].trackingId} (${INITIAL_JOBS[1].customerName}) passed estimated repair date (${INITIAL_JOBS[1].estimatedRepairDate}) and is still in Under Maintenance.`,
+    timestamp: 'Today 09:00 AM',
+    read: false,
+    type: 'overdue',
+    jobTrackingId: INITIAL_JOBS[1].trackingId,
+  },
+  {
+    id: 'notif-2',
+    title: 'Payment Confirmed',
+    message: `Payment of Rs. 8,500 received for Job #${INITIAL_JOBS[3].trackingId}`,
+    timestamp: 'Today 02:30 PM',
+    read: true,
+    type: 'payment',
+    jobTrackingId: INITIAL_JOBS[3].trackingId,
+  },
+];

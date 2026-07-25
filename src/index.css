@@ -1,0 +1,92 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --brand-teal: #008b9b;
+    --brand-teal-dark: #006673;
+    --brand-teal-light: #00b3c6;
+    --brand-teal-bg: #f0fdfa;
+    --brand-slate-bg: #f8fafc;
+    --brand-card: #ffffff;
+    --brand-border: #e2e8f0;
+    --brand-solar: #f59e0b;
+  }
+
+  body {
+    background-color: #f8fafc;
+    color: #0f172a;
+  }
+}
+
+/* Custom scrollbar for clean corporate look */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Print and PDF Export Styles */
+@media print {
+  /* Hide non-printable app UI elements */
+  header,
+  aside,
+  nav,
+  main,
+  .print\:hidden {
+    display: none !important;
+  }
+
+  /* Reset body and container background for clean printing */
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Ensure modal container prints full-width with no dark overlay or scrollbars */
+  .fixed {
+    position: static !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    backdrop-filter: none !important;
+    display: block !important;
+  }
+
+  /* Expand the printable modal box to fit page */
+  .fixed > div {
+    max-width: 100% !important;
+    width: 100% !important;
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  #printable-area {
+    padding: 1rem !important;
+    margin: 0 !important;
+    width: 100% !important;
+    background: #ffffff !important;
+  }
+
+  /* Preserve background colors and borders for badges/table headers when saving as PDF */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+
+

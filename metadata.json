@@ -1,0 +1,6 @@
+{
+  "name": "InvertiSOL Admin Panel & Repair Lab Management",
+  "description": "Comprehensive repair lab management system for InvertiSOL with job tracking, inventory, cash register, billing, referrals, and reports.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
