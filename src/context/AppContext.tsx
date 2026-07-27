@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import {
   UserRole,
   UserAccount,
@@ -377,8 +377,69 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem('invertisol_notifications', JSON.stringify(notifications));
   }, [notifications]);
 
-  // PHP Server Real-Time Auto Sync Effect
+  // Track when a remote pull is updating state to avoid redundant pushes
+  const isRemoteUpdatingRef = useRef(false);
+
+  // 1. Initial Load & Periodic Background Polling (Multi-Device Live Real-Time Data Sync)
   useEffect(() => {
+    const fetchLatestServerData = async () => {
+      const config = getPhpHostConfig();
+      if (!config.autoSyncEnabled || !config.phpHostUrl) return;
+
+      const result = await pullStateFromPhp(config.phpHostUrl, config.apiKey);
+      if (result.success && result.data) {
+        const d = result.data;
+        isRemoteUpdatingRef.current = true;
+
+        if (d.jobs && Array.isArray(d.jobs) && JSON.stringify(d.jobs) !== JSON.stringify(jobs)) {
+          setJobs(d.jobs);
+        }
+        if (d.inventory && Array.isArray(d.inventory) && JSON.stringify(d.inventory) !== JSON.stringify(inventory)) {
+          setInventory(d.inventory);
+        }
+        if (d.cashTransactions && Array.isArray(d.cashTransactions) && JSON.stringify(d.cashTransactions) !== JSON.stringify(transactions)) {
+          setTransactions(d.cashTransactions);
+        }
+        if (d.expenseCategories && Array.isArray(d.expenseCategories) && JSON.stringify(d.expenseCategories) !== JSON.stringify(expenseCategories)) {
+          setExpenseCategories(d.expenseCategories);
+        }
+        if (d.franchises && Array.isArray(d.franchises) && JSON.stringify(d.franchises) !== JSON.stringify(franchises)) {
+          setFranchises(d.franchises);
+        }
+        if (d.wallets && Array.isArray(d.wallets) && JSON.stringify(d.wallets) !== JSON.stringify(wallets)) {
+          setWallets(d.wallets);
+        }
+        if (d.banks && Array.isArray(d.banks) && JSON.stringify(d.banks) !== JSON.stringify(banks)) {
+          setBanks(d.banks);
+        }
+        if (d.scheduleCharges && typeof d.scheduleCharges === 'object' && JSON.stringify(d.scheduleCharges) !== JSON.stringify(scheduleCharges)) {
+          setScheduleCharges(d.scheduleCharges);
+        }
+        if (d.users && Array.isArray(d.users) && JSON.stringify(d.users) !== JSON.stringify(users)) {
+          setUsers(d.users);
+        }
+
+        setTimeout(() => {
+          isRemoteUpdatingRef.current = false;
+        }, 800);
+      }
+    };
+
+    // Immediate pull on application startup
+    fetchLatestServerData();
+
+    // Background polling every 5 seconds for live multi-device synchronization
+    const interval = setInterval(() => {
+      fetchLatestServerData();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // 2. Auto Push Local Changes to MySQL Database Server
+  useEffect(() => {
+    if (isRemoteUpdatingRef.current) return;
+
     const config = getPhpHostConfig();
     if (config.autoSyncEnabled && config.phpHostUrl) {
       const timer = setTimeout(() => {
@@ -393,7 +454,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           scheduleCharges,
           users,
         });
-      }, 1500);
+      }, 1200);
       return () => clearTimeout(timer);
     }
   }, [jobs, inventory, transactions, expenseCategories, franchises, wallets, banks, scheduleCharges, users]);

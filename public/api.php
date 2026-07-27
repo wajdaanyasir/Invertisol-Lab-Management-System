@@ -12,7 +12,7 @@
 // --- DATABASE CONFIGURATION ---
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'eenjimvt_invertisol_lab');
-define('DB_USER', 'eenjimvt_wp232');
+define('DB_USER', 'eenjimvt_labmanager');
 define('DB_PASS', 'lab_admin@123@12');
 define('API_SECRET_KEY', ''); // Set a secret key if you wish to enforce header validation (X-API-KEY)
 

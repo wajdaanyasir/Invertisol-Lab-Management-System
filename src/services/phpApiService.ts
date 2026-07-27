@@ -11,19 +11,56 @@ export interface PhpHostConfig {
 
 const STORAGE_KEY = 'invertisol_php_host_config';
 
+export function formatApiUrl(url: string): string {
+  let formattedUrl = url.trim();
+  if (!formattedUrl) {
+    if (typeof window !== 'undefined') {
+      return `${window.location.origin}/api.php`;
+    }
+    return '/api.php';
+  }
+
+  if (formattedUrl.startsWith('/') || formattedUrl.startsWith('./')) {
+    if (typeof window !== 'undefined') {
+      return `${window.location.origin}${formattedUrl.startsWith('/') ? '' : '/'}${formattedUrl}`;
+    }
+  }
+
+  if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
+    // If it looks like a domain or path
+    if (formattedUrl.includes('.')) {
+      formattedUrl = 'https://' + formattedUrl;
+    } else {
+      if (typeof window !== 'undefined') {
+        return `${window.location.origin}/${formattedUrl}`;
+      }
+    }
+  }
+
+  return formattedUrl;
+}
+
 export function getPhpHostConfig(): PhpHostConfig {
+  const defaultUrl = typeof window !== 'undefined' ? `${window.location.origin}/api.php` : '/api.php';
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      if (parsed) {
+        return {
+          ...parsed,
+          phpHostUrl: parsed.phpHostUrl ? parsed.phpHostUrl : defaultUrl,
+          autoSyncEnabled: parsed.autoSyncEnabled !== undefined ? parsed.autoSyncEnabled : true,
+        };
+      }
     }
   } catch (e) {
     console.warn('Error reading PHP host config from localStorage:', e);
   }
   return {
-    phpHostUrl: '',
+    phpHostUrl: defaultUrl,
     apiKey: '',
-    autoSyncEnabled: false,
+    autoSyncEnabled: true,
     lastSyncStatus: 'idle',
   };
 }
@@ -37,13 +74,9 @@ export function savePhpHostConfig(config: PhpHostConfig): void {
 }
 
 export async function testPhpConnection(url: string, apiKey: string): Promise<{ success: boolean; message: string; data?: any }> {
-  if (!url.trim()) {
+  const formattedUrl = formatApiUrl(url);
+  if (!formattedUrl) {
     return { success: false, message: 'PHP Endpoint URL is required.' };
-  }
-
-  let formattedUrl = url.trim();
-  if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
-    formattedUrl = 'https://' + formattedUrl;
   }
 
   const pingUrl = formattedUrl.includes('?') ? `${formattedUrl}&action=ping` : `${formattedUrl}?action=ping`;
@@ -93,13 +126,9 @@ export async function pushStateToPhp(
     users?: UserAccount[];
   }
 ): Promise<{ success: boolean; message: string }> {
-  if (!url.trim()) {
+  const formattedUrl = formatApiUrl(url);
+  if (!formattedUrl) {
     return { success: false, message: 'PHP Endpoint URL is missing.' };
-  }
-
-  let formattedUrl = url.trim();
-  if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
-    formattedUrl = 'https://' + formattedUrl;
   }
 
   const syncUrl = formattedUrl.includes('?') ? `${formattedUrl}&action=sync_all` : `${formattedUrl}?action=sync_all`;
@@ -143,13 +172,9 @@ export async function pullStateFromPhp(
   url: string,
   apiKey: string
 ): Promise<{ success: boolean; message: string; data?: any }> {
-  if (!url.trim()) {
+  const formattedUrl = formatApiUrl(url);
+  if (!formattedUrl) {
     return { success: false, message: 'PHP Endpoint URL is missing.' };
-  }
-
-  let formattedUrl = url.trim();
-  if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
-    formattedUrl = 'https://' + formattedUrl;
   }
 
   const getUrl = formattedUrl.includes('?') ? `${formattedUrl}&action=get_all` : `${formattedUrl}?action=get_all`;
