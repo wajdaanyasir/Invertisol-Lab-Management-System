@@ -211,57 +211,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.removeItem('invertisol_admin_unlocked');
     setPortalModeState('customer');
   };
-  const [users, setUsers] = useState<UserAccount[]>(() => {
-    const saved = localStorage.getItem('invertisol_users');
-    return saved ? JSON.parse(saved) : INITIAL_USERS;
-  });
-  const [currentUser, setCurrentUser] = useState<UserAccount>(users[0]);
+  const [users, setUsers] = useState<UserAccount[]>(INITIAL_USERS);
+  const [currentUser, setCurrentUser] = useState<UserAccount>(INITIAL_USERS[0]);
   const [activeTab, setActiveTab] = useState<string>('jobs');
 
-  const [jobs, setJobs] = useState<Job[]>(() => {
-    const saved = localStorage.getItem('invertisol_jobs');
-    return saved ? JSON.parse(saved) : INITIAL_JOBS;
-  });
-
-  const [inventory, setInventory] = useState<InventoryItem[]>(() => {
-    const saved = localStorage.getItem('invertisol_inventory');
-    return saved ? JSON.parse(saved) : INITIAL_INVENTORY;
-  });
-
-  const [transactions, setTransactions] = useState<CashTransaction[]>(() => {
-    const saved = localStorage.getItem('invertisol_transactions');
-    return saved ? JSON.parse(saved) : INITIAL_CASH_TRANSACTIONS;
-  });
-
-  const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>(() => {
-    const saved = localStorage.getItem('invertisol_expense_categories');
-    return saved ? JSON.parse(saved) : INITIAL_EXPENSE_CATEGORIES;
-  });
-
-  const [franchises, setFranchises] = useState<ReferralFranchise[]>(() => {
-    const saved = localStorage.getItem('invertisol_franchises');
-    return saved ? JSON.parse(saved) : INITIAL_FRANCHISES;
-  });
-
-  const [wallets, setWallets] = useState<MobileWalletAccount[]>(() => {
-    const saved = localStorage.getItem('invertisol_wallets');
-    return saved ? JSON.parse(saved) : INITIAL_WALLETS;
-  });
-
-  const [banks, setBanks] = useState<BankAccount[]>(() => {
-    const saved = localStorage.getItem('invertisol_banks');
-    return saved ? JSON.parse(saved) : INITIAL_BANKS;
-  });
-
-  const [scheduleCharges, setScheduleCharges] = useState<ScheduleChargesConfig>(() => {
-    const saved = localStorage.getItem('invertisol_schedule_charges');
-    return saved ? JSON.parse(saved) : INITIAL_SCHEDULE_CHARGES;
-  });
-
-  const [notifications, setNotifications] = useState<AppNotification[]>(() => {
-    const saved = localStorage.getItem('invertisol_notifications');
-    return saved ? JSON.parse(saved) : INITIAL_NOTIFICATIONS;
-  });
+  const [jobs, setJobs] = useState<Job[]>(INITIAL_JOBS);
+  const [inventory, setInventory] = useState<InventoryItem[]>(INITIAL_INVENTORY);
+  const [transactions, setTransactions] = useState<CashTransaction[]>(INITIAL_CASH_TRANSACTIONS);
+  const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>(INITIAL_EXPENSE_CATEGORIES);
+  const [franchises, setFranchises] = useState<ReferralFranchise[]>(INITIAL_FRANCHISES);
+  const [wallets, setWallets] = useState<MobileWalletAccount[]>(INITIAL_WALLETS);
+  const [banks, setBanks] = useState<BankAccount[]>(INITIAL_BANKS);
+  const [scheduleCharges, setScheduleCharges] = useState<ScheduleChargesConfig>(INITIAL_SCHEDULE_CHARGES);
+  const [notifications, setNotifications] = useState<AppNotification[]>(INITIAL_NOTIFICATIONS);
 
   const [selectedPrintJob, setSelectedPrintJob] = useState<Job | null>(null);
   const [printReportData, setPrintReportData] = useState<ReportPrintData | null>(null);
@@ -335,47 +297,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       localStorage.removeItem('invertisol_logo');
     }
   }, [appLogo]);
-
-  // Sync to LocalStorage
-  useEffect(() => {
-    localStorage.setItem('invertisol_users', JSON.stringify(users));
-  }, [users]);
-
-  useEffect(() => {
-    localStorage.setItem('invertisol_jobs', JSON.stringify(jobs));
-  }, [jobs]);
-
-  useEffect(() => {
-    localStorage.setItem('invertisol_inventory', JSON.stringify(inventory));
-  }, [inventory]);
-
-  useEffect(() => {
-    localStorage.setItem('invertisol_transactions', JSON.stringify(transactions));
-  }, [transactions]);
-
-  useEffect(() => {
-    localStorage.setItem('invertisol_expense_categories', JSON.stringify(expenseCategories));
-  }, [expenseCategories]);
-
-  useEffect(() => {
-    localStorage.setItem('invertisol_franchises', JSON.stringify(franchises));
-  }, [franchises]);
-
-  useEffect(() => {
-    localStorage.setItem('invertisol_wallets', JSON.stringify(wallets));
-  }, [wallets]);
-
-  useEffect(() => {
-    localStorage.setItem('invertisol_banks', JSON.stringify(banks));
-  }, [banks]);
-
-  useEffect(() => {
-    localStorage.setItem('invertisol_schedule_charges', JSON.stringify(scheduleCharges));
-  }, [scheduleCharges]);
-
-  useEffect(() => {
-    localStorage.setItem('invertisol_notifications', JSON.stringify(notifications));
-  }, [notifications]);
 
   // Track when a remote pull is updating state to avoid redundant pushes
   const isRemoteUpdatingRef = useRef(false);
@@ -1124,40 +1045,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!data) return;
     if (Array.isArray(data.jobs)) {
       setJobs(data.jobs);
-      localStorage.setItem('invertisol_jobs', JSON.stringify(data.jobs));
     }
     if (Array.isArray(data.inventory)) {
       setInventory(data.inventory);
-      localStorage.setItem('invertisol_inventory', JSON.stringify(data.inventory));
     }
     if (Array.isArray(data.transactions) || Array.isArray(data.cashTransactions)) {
       const txs = data.transactions || data.cashTransactions;
       setTransactions(txs);
-      localStorage.setItem('invertisol_transactions', JSON.stringify(txs));
     }
     if (Array.isArray(data.expenseCategories)) {
       setExpenseCategories(data.expenseCategories);
-      localStorage.setItem('invertisol_expense_categories', JSON.stringify(data.expenseCategories));
     }
     if (Array.isArray(data.franchises)) {
       setFranchises(data.franchises);
-      localStorage.setItem('invertisol_franchises', JSON.stringify(data.franchises));
     }
     if (Array.isArray(data.wallets)) {
       setWallets(data.wallets);
-      localStorage.setItem('invertisol_wallets', JSON.stringify(data.wallets));
     }
     if (Array.isArray(data.banks)) {
       setBanks(data.banks);
-      localStorage.setItem('invertisol_banks', JSON.stringify(data.banks));
     }
     if (data.scheduleCharges) {
       setScheduleCharges(data.scheduleCharges);
-      localStorage.setItem('invertisol_schedule_charges', JSON.stringify(data.scheduleCharges));
     }
     if (Array.isArray(data.users)) {
       setUsers(data.users);
-      localStorage.setItem('invertisol_users', JSON.stringify(data.users));
     }
   };
 

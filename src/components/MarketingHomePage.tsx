@@ -81,32 +81,16 @@ export const MarketingHomePage: React.FC = () => {
   const [createdJobResult, setCreatedJobResult] = useState<Job | null>(null);
   const [copiedTrackingId, setCopiedTrackingId] = useState(false);
 
-  // Load saved tracking IDs on initial mount
+  // Initial tracking setup
   useEffect(() => {
-    try {
-      const storedRecordsJson = localStorage.getItem('my_invertisol_tracking_records');
-      const lastId = localStorage.getItem('last_invertisol_tracking_id');
-
-      let records: SavedTrackingRecord[] = [];
-      if (storedRecordsJson) {
-        records = JSON.parse(storedRecordsJson);
-        setSavedRecords(records);
+    if (jobs && jobs.length > 0) {
+      const firstJob = jobs[0];
+      if (firstJob && !trackQuery) {
+        setTrackQuery(firstJob.trackingId);
+        setSearchedJob(firstJob);
       }
-
-      // Default initial query: either last saved tracking ID, first stored record, or first job in array
-      const queryToUse = lastId || (records.length > 0 ? records[0].trackingId : (jobs[0]?.trackingId || ''));
-      if (queryToUse) {
-        setTrackQuery(queryToUse);
-        const cleanQuery = queryToUse.toLowerCase().replace(/^#/, '').trim();
-        const found = jobs.find((j) => j.trackingId.toLowerCase().replace(/^#/, '').trim() === cleanQuery) || jobs[0] || null;
-        if (found) {
-          setSearchedJob(found);
-        }
-      }
-    } catch (e) {
-      console.error('Error loading local tracking data:', e);
     }
-  }, []); // Run once on mount to prevent overwriting active search when jobs update
+  }, [jobs]);
 
   // Keep searchedJob synced with latest jobs list updates
   useEffect(() => {
@@ -151,12 +135,6 @@ export const MarketingHomePage: React.FC = () => {
       setSearchedJob(found);
       setTrackQuery(found.trackingId);
       setSearchError(null);
-      // Save last searched tracking ID to localStorage
-      try {
-        localStorage.setItem('last_invertisol_tracking_id', found.trackingId);
-      } catch (err) {
-        console.error(err);
-      }
     } else {
       setSearchedJob(null);
       setSearchError(rawQuery);
@@ -193,28 +171,13 @@ export const MarketingHomePage: React.FC = () => {
     setSearchedJob(newJob);
     setTrackQuery(newJob.trackingId);
 
-    // PERSIST TO LOCAL STORAGE FOR NEXT VISIT!
-    try {
-      localStorage.setItem('last_invertisol_tracking_id', newJob.trackingId);
-
-      const newRecord: SavedTrackingRecord = {
-        trackingId: newJob.trackingId,
-        customerName: newJob.customerName,
-        inverterBrand: `${newJob.inverterBrand} (${newJob.inverterKva})`,
-        date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-      };
-
-      const existingStr = localStorage.getItem('my_invertisol_tracking_records');
-      let existingList: SavedTrackingRecord[] = existingStr ? JSON.parse(existingStr) : [];
-      // Remove duplicate if exists
-      existingList = existingList.filter((r) => r.trackingId !== newJob.trackingId);
-      // Prepend new record
-      const updatedList = [newRecord, ...existingList].slice(0, 5); // store up to 5
-      localStorage.setItem('my_invertisol_tracking_records', JSON.stringify(updatedList));
-      setSavedRecords(updatedList);
-    } catch (err) {
-      console.error('Failed to save to local storage', err);
-    }
+    const newRecord: SavedTrackingRecord = {
+      trackingId: newJob.trackingId,
+      customerName: newJob.customerName,
+      inverterBrand: `${newJob.inverterBrand} (${newJob.inverterKva})`,
+      date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+    };
+    setSavedRecords((prev) => [newRecord, ...prev.filter((r) => r.trackingId !== newJob.trackingId)].slice(0, 5));
 
     // Reset form fields
     setCustomerName('');
@@ -895,11 +858,11 @@ export const MarketingHomePage: React.FC = () => {
                       <CheckCircle2 className="w-6 h-6" />
                     </div>
                     <div>
-                      <h3 className="font-extrabold text-slate-900 text-base">
-                        Complaint Registered & Saved to Device!
+      <h3 className="font-extrabold text-slate-900 text-base">
+                        Complaint Registered & Synced with Online Database!
                       </h3>
                       <p className="text-xs text-emerald-800">
-                        Your tracking number is saved in your browser localStorage. Return anytime to check status automatically!
+                        Your complaint has been submitted live to our server database. Use your Tracking ID anytime to check real-time repair status!
                       </p>
                     </div>
                   </div>
