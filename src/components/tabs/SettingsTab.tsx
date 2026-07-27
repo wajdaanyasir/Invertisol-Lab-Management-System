@@ -1039,31 +1039,39 @@ export const SettingsTab: React.FC = () => {
       {/* SUB-TAB: PHP & MYSQL HOSTING DATABASE SYNC */}
       {activeSubTab === 'php_hosting' && (
         <div className="space-y-6">
-          <div className="bg-gradient-to-r from-slate-900 to-teal-950 text-white rounded-2xl p-6 shadow-md border border-slate-800">
+          <div className="bg-gradient-to-r from-slate-900 to-teal-950 text-white rounded-2xl p-6 shadow-md border border-slate-800 space-y-4">
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-2">
                 <div className="inline-flex items-center gap-2 px-3 py-1 bg-teal-500/20 text-teal-300 border border-teal-500/30 rounded-full text-xs font-bold uppercase tracking-wider">
                   <Server className="w-3.5 h-3.5" />
-                  <span>PHP & MySQL Hosting Integration</span>
+                  <span>Online Database Engine Active</span>
                 </div>
-                <h2 className="text-xl font-black text-white">PHP Server Database Sync Engine</h2>
+                <h2 className="text-xl font-black text-white">MySQL Database & Real-Time Sync Console</h2>
                 <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
-                  Connect your InvertiSOL Lab software directly to any standard PHP-supported hosting server (cPanel, Hostinger, Bluehost, GoDaddy, Plesk, Apache/Nginx). All jobs, inventory, billing, and transactions will sync seamlessly to your online MySQL database.
+                  Your website is pre-configured to connect directly to your online MySQL database (<code className="font-mono font-bold text-teal-300">eenjimvt_invertisol_lab</code>). All job cards, inventory, billing, and transactions sync live across all devices without storing local data.
                 </p>
               </div>
               <div className="hidden sm:block text-right">
-                <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Sync Status</span>
-                {phpConfig.lastSyncStatus === 'success' ? (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-lg text-xs font-bold">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    <span>Connected & Synced</span>
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-lg text-xs font-bold">
-                    <HardDrive className="w-4 h-4 text-amber-400" />
-                    <span>Local / Standalone Mode</span>
-                  </span>
-                )}
+                <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Database Mode</span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-lg text-xs font-bold">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  <span>Online Storage Active</span>
+                </span>
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-slate-800 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              <div className="bg-slate-800/80 p-2.5 rounded-xl border border-slate-700/60">
+                <span className="text-[10px] text-slate-400 font-bold block uppercase">Database Name</span>
+                <span className="font-mono font-bold text-teal-300">eenjimvt_invertisol_lab</span>
+              </div>
+              <div className="bg-slate-800/80 p-2.5 rounded-xl border border-slate-700/60">
+                <span className="text-[10px] text-slate-400 font-bold block uppercase">Database User</span>
+                <span className="font-mono font-bold text-teal-300">eenjimvt_labmanager</span>
+              </div>
+              <div className="bg-slate-800/80 p-2.5 rounded-xl border border-slate-700/60">
+                <span className="text-[10px] text-slate-400 font-bold block uppercase">Active Backend API</span>
+                <span className="font-mono font-bold text-emerald-400">/api.php (Live Sync)</span>
               </div>
             </div>
           </div>
