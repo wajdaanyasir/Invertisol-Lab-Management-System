@@ -839,16 +839,27 @@ export const MarketingHomePage: React.FC = () => {
                     </button>
                   )}
 
-                  <button
-                    onClick={() => {
-                      setSelectedPrintJob(searchedJob);
-                      setPrintDocumentType('job_tag');
-                    }}
-                    className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl flex items-center justify-center gap-2 text-xs cursor-pointer shadow-md transition-colors"
-                  >
-                    <ShieldCheck className="w-4 h-4 text-white" />
-                    <span>Print 6-Month Warranty Receipt</span>
-                  </button>
+                  {searchedJob.paymentConfirmed ? (
+                    <button
+                      onClick={() => {
+                        setSelectedPrintJob(searchedJob);
+                        setPrintDocumentType('payment_receipt');
+                      }}
+                      className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl flex items-center justify-center gap-2 text-xs cursor-pointer shadow-md transition-colors"
+                    >
+                      <ShieldCheck className="w-4 h-4 text-white" />
+                      <span>Print 6-Month Warranty Receipt</span>
+                    </button>
+                  ) : (
+                    <button
+                      disabled
+                      className="flex-1 py-3 px-4 bg-slate-200 text-slate-400 font-bold rounded-2xl flex items-center justify-center gap-2 text-xs cursor-not-allowed border border-slate-300"
+                      title="6-Month Warranty Receipt will unlock once payment is received and confirmed by admin"
+                    >
+                      <Lock className="w-4 h-4 text-slate-400" />
+                      <span>6-Month Warranty (Pending Payment Confirmation)</span>
+                    </button>
+                  )}
                 </div>
               </div>
             ) : (

@@ -17,6 +17,7 @@ import {
   ReportPrintData,
 } from '../types';
 import { Language, AppTheme, translations } from '../utils/translations';
+import { getPhpHostConfig, pushStateToPhp, pullStateFromPhp } from '../services/phpApiService';
 import {
   INITIAL_USERS,
   INITIAL_INVENTORY,
@@ -39,6 +40,8 @@ interface AppContextType {
   lockAdmin: () => void;
   showAdminLoginModal: boolean;
   setShowAdminLoginModal: (show: boolean) => void;
+  adminPin: string;
+  updateAdminPin: (newPin: string) => boolean;
   currentUser: UserAccount;
   setCurrentUser: (user: UserAccount) => void;
   users: UserAccount[];
@@ -148,6 +151,7 @@ interface AppContextType {
   markNotificationRead: (id: string) => void;
   clearAllNotifications: () => void;
   downloadDatabase: () => void;
+  bulkImportState: (data: any) => void;
   selectedPrintJob: Job | null;
   setSelectedPrintJob: (job: Job | null) => void;
   printReportData: ReportPrintData | null;
@@ -166,6 +170,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return localStorage.getItem('invertisol_admin_unlocked') === 'true';
   });
   const [showAdminLoginModal, setShowAdminLoginModal] = useState<boolean>(false);
+  const [adminPin, setAdminPinState] = useState<string>(() => {
+    return localStorage.getItem('invertisol_admin_pin') || '1234';
+  });
+
+  const updateAdminPin = (newPin: string): boolean => {
+    const trimmed = newPin.trim();
+    if (!trimmed || trimmed.length < 3) return false;
+    setAdminPinState(trimmed);
+    localStorage.setItem('invertisol_admin_pin', trimmed);
+    return true;
+  };
 
   const setPortalMode = (mode: 'admin' | 'customer') => {
     if (mode === 'admin' && !isAdminUnlocked) {
@@ -176,7 +191,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const unlockAdmin = (password: string) => {
-    const valid = ['1234', 'admin123', 'admin', '123456', 'invertisol'].includes(password.trim().toLowerCase());
+    const p = password.trim();
+    const valid =
+      p === adminPin ||
+      p.toLowerCase() === adminPin.toLowerCase() ||
+      ['1234', 'admin123', 'admin', '123456', 'invertisol'].includes(p.toLowerCase());
     if (valid) {
       setIsAdminUnlocked(true);
       localStorage.setItem('invertisol_admin_unlocked', 'true');
@@ -357,6 +376,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     localStorage.setItem('invertisol_notifications', JSON.stringify(notifications));
   }, [notifications]);
+
+  // PHP Server Real-Time Auto Sync Effect
+  useEffect(() => {
+    const config = getPhpHostConfig();
+    if (config.autoSyncEnabled && config.phpHostUrl) {
+      const timer = setTimeout(() => {
+        pushStateToPhp(config.phpHostUrl, config.apiKey, {
+          jobs,
+          inventory,
+          cashTransactions: transactions,
+          expenseCategories,
+          franchises,
+          wallets,
+          banks,
+          scheduleCharges,
+          users,
+        });
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [jobs, inventory, transactions, expenseCategories, franchises, wallets, banks, scheduleCharges, users]);
 
   // Compute Balances
   const counterCashBalance = transactions.reduce((acc, tx) => {
@@ -1019,6 +1059,47 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     downloadAnchor.remove();
   };
 
+  const bulkImportState = (data: any) => {
+    if (!data) return;
+    if (Array.isArray(data.jobs)) {
+      setJobs(data.jobs);
+      localStorage.setItem('invertisol_jobs', JSON.stringify(data.jobs));
+    }
+    if (Array.isArray(data.inventory)) {
+      setInventory(data.inventory);
+      localStorage.setItem('invertisol_inventory', JSON.stringify(data.inventory));
+    }
+    if (Array.isArray(data.transactions) || Array.isArray(data.cashTransactions)) {
+      const txs = data.transactions || data.cashTransactions;
+      setTransactions(txs);
+      localStorage.setItem('invertisol_transactions', JSON.stringify(txs));
+    }
+    if (Array.isArray(data.expenseCategories)) {
+      setExpenseCategories(data.expenseCategories);
+      localStorage.setItem('invertisol_expense_categories', JSON.stringify(data.expenseCategories));
+    }
+    if (Array.isArray(data.franchises)) {
+      setFranchises(data.franchises);
+      localStorage.setItem('invertisol_franchises', JSON.stringify(data.franchises));
+    }
+    if (Array.isArray(data.wallets)) {
+      setWallets(data.wallets);
+      localStorage.setItem('invertisol_wallets', JSON.stringify(data.wallets));
+    }
+    if (Array.isArray(data.banks)) {
+      setBanks(data.banks);
+      localStorage.setItem('invertisol_banks', JSON.stringify(data.banks));
+    }
+    if (data.scheduleCharges) {
+      setScheduleCharges(data.scheduleCharges);
+      localStorage.setItem('invertisol_schedule_charges', JSON.stringify(data.scheduleCharges));
+    }
+    if (Array.isArray(data.users)) {
+      setUsers(data.users);
+      localStorage.setItem('invertisol_users', JSON.stringify(data.users));
+    }
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -1029,6 +1110,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         lockAdmin,
         showAdminLoginModal,
         setShowAdminLoginModal,
+        adminPin,
+        updateAdminPin,
         currentUser,
         setCurrentUser,
         users,
@@ -1073,6 +1156,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         markNotificationRead,
         clearAllNotifications,
         downloadDatabase,
+        bulkImportState,
         selectedPrintJob,
         setSelectedPrintJob,
         printReportData,

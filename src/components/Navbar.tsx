@@ -54,31 +54,28 @@ export const Navbar: React.FC = () => {
   return (
     <header className="bg-[#008b9b] border-b border-[#007280] text-white sticky top-0 z-40 shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 sm:h-20 gap-4">
+        <div className="flex items-center justify-between h-16 gap-3">
           {/* Logo & Tagline */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-3 shrink-0">
             {appLogo ? (
               <img
                 src={appLogo}
                 alt="InvertiSOL Custom Logo"
-                className="h-12 sm:h-14 w-auto max-w-[220px] sm:max-w-[280px] object-contain bg-white px-2.5 py-1 rounded-xl shadow-md border border-white/50"
+                className="h-9 w-auto max-w-[180px] sm:max-w-[220px] object-contain bg-white px-2.5 py-1 rounded-lg shadow-xs border border-white/50"
               />
             ) : (
-              <div className="flex items-center gap-1 font-black text-2xl sm:text-3xl tracking-tight text-white select-none">
+              <div className="flex items-center gap-1 font-black text-xl sm:text-2xl tracking-tight text-white select-none">
                 <span className="font-extrabold text-white">inverti</span>
-                <span className="bg-amber-400 text-slate-950 px-2 py-0.5 rounded-lg flex items-center justify-center font-black shadow-md ml-0.5">
-                  S<Zap className="w-5 h-5 fill-slate-950 inline -mt-0.5" />L
+                <span className="bg-amber-400 text-slate-950 px-2 py-0.5 rounded-md flex items-center justify-center font-black shadow-xs ml-0.5 text-lg sm:text-xl">
+                  S<Zap className="w-4 h-4 fill-slate-950 inline -mt-0.5" />L
                 </span>
               </div>
             )}
 
-            <div className="border-l border-teal-500/50 pl-3 hidden sm:block">
-              <p className="text-xs font-bold text-amber-300 tracking-wide">
+            <div className="border-l border-teal-500/40 pl-3 hidden lg:block">
+              <span className="text-xs font-semibold text-amber-300 tracking-wide block">
                 {t('tagline')}
-              </p>
-              <p className="text-[10px] text-teal-100/80 font-medium">
-                {t('location')}
-              </p>
+              </span>
             </div>
           </div>
 
@@ -88,7 +85,7 @@ export const Navbar: React.FC = () => {
               onClick={() => setPortalMode('customer')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 portalMode === 'customer'
-                  ? 'bg-amber-400 text-slate-950 shadow-md'
+                  ? 'bg-amber-400 text-slate-950 shadow-xs'
                   : 'text-teal-100 hover:text-white hover:bg-teal-700/50'
               }`}
             >
@@ -106,7 +103,7 @@ export const Navbar: React.FC = () => {
               }}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 portalMode === 'admin'
-                  ? 'bg-amber-400 text-slate-950 shadow-md'
+                  ? 'bg-amber-400 text-slate-950 shadow-xs'
                   : 'text-teal-100 hover:text-white hover:bg-teal-700/50'
               }`}
             >
@@ -122,7 +119,7 @@ export const Navbar: React.FC = () => {
               <button
                 onClick={lockAdmin}
                 title="Lock & Exit Admin Mode"
-                className="p-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition-colors cursor-pointer ml-1"
+                className="p-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition-colors cursor-pointer ml-0.5"
               >
                 <LogOut className="w-3.5 h-3.5" />
               </button>
@@ -130,11 +127,11 @@ export const Navbar: React.FC = () => {
           </div>
 
           {/* Right Header Actions */}
-          <div className="flex items-center space-x-2.5">
+          <div className="flex items-center space-x-2 shrink-0">
             {/* Language Switcher Button */}
             <button
               onClick={() => setLanguage(language === 'en' ? 'ur' : 'en')}
-              className="flex items-center gap-1 px-2.5 py-1.5 bg-[#006e7a] hover:bg-teal-700 text-xs font-bold text-amber-300 rounded-xl border border-teal-600/60 transition-colors cursor-pointer shadow-inner"
+              className="flex items-center gap-1 px-2.5 py-1.5 bg-[#006e7a] hover:bg-teal-700/80 text-xs font-bold text-amber-300 rounded-xl border border-teal-600/60 transition-colors cursor-pointer shadow-inner"
               title="Change Language (English / Urdu)"
             >
               <Globe className="w-3.5 h-3.5 text-amber-300" />
@@ -147,7 +144,7 @@ export const Navbar: React.FC = () => {
                 onClick={() => setAppTheme('light')}
                 title="Light Theme"
                 className={`p-1.5 rounded-lg transition-all cursor-pointer ${
-                  appTheme === 'light' ? 'bg-amber-400 text-slate-950 shadow-sm' : 'text-teal-100 hover:text-white'
+                  appTheme === 'light' ? 'bg-amber-400 text-slate-950 shadow-xs' : 'text-teal-100 hover:text-white'
                 }`}
               >
                 <Sun className="w-3.5 h-3.5" />
@@ -156,7 +153,7 @@ export const Navbar: React.FC = () => {
                 onClick={() => setAppTheme('dark')}
                 title="Dark Theme"
                 className={`p-1.5 rounded-lg transition-all cursor-pointer ${
-                  appTheme === 'dark' ? 'bg-amber-400 text-slate-950 shadow-sm' : 'text-teal-100 hover:text-white'
+                  appTheme === 'dark' ? 'bg-amber-400 text-slate-950 shadow-xs' : 'text-teal-100 hover:text-white'
                 }`}
               >
                 <Moon className="w-3.5 h-3.5" />
@@ -165,7 +162,7 @@ export const Navbar: React.FC = () => {
                 onClick={() => setAppTheme('solar')}
                 title="Solar Teal Theme"
                 className={`p-1.5 rounded-lg transition-all cursor-pointer ${
-                  appTheme === 'solar' ? 'bg-amber-400 text-slate-950 shadow-sm' : 'text-teal-100 hover:text-white'
+                  appTheme === 'solar' ? 'bg-amber-400 text-slate-950 shadow-xs' : 'text-teal-100 hover:text-white'
                 }`}
               >
                 <Palette className="w-3.5 h-3.5" />
@@ -175,16 +172,16 @@ export const Navbar: React.FC = () => {
             {portalMode === 'admin' && (
               <>
                 {/* Cash Balance Highlight Badges */}
-                <div className="hidden lg:flex items-center gap-2 bg-[#006e7a]/80 px-2.5 py-1 rounded-lg border border-teal-600/50 text-xs font-medium text-white">
-                  <div className="flex items-center gap-1 text-amber-300 border-r border-teal-600/60 pr-2">
+                <div className="hidden xl:flex items-center gap-3 bg-[#006e7a] px-3 py-1.5 rounded-xl border border-teal-600/60 text-xs font-medium text-white shadow-inner">
+                  <div className="flex items-center gap-1.5 text-amber-300 border-r border-teal-600/60 pr-2.5">
                     <Wallet className="w-3.5 h-3.5" />
-                    <span>{t('counterCash')}:</span>
+                    <span className="text-teal-200">{t('counterCash')}:</span>
                     <span className="font-bold font-mono text-white">Rs. {counterCashBalance.toLocaleString()}</span>
                   </div>
                   {currentUser.role === 'super' && (
-                    <div className="flex items-center gap-1 text-cyan-200">
-                      <Building2 className="w-3.5 h-3.5" />
-                      <span>{t('bankBalance')}:</span>
+                    <div className="flex items-center gap-1.5 text-cyan-200">
+                      <Building2 className="w-3.5 h-3.5 text-cyan-300" />
+                      <span className="text-teal-200">{t('bankBalance')}:</span>
                       <span className="font-bold font-mono text-white">Rs. {bankBalance.toLocaleString()}</span>
                     </div>
                   )}
@@ -195,7 +192,7 @@ export const Navbar: React.FC = () => {
                   <button
                     onClick={downloadDatabase}
                     title="Export Database Record (Excel/JSON)"
-                    className="p-1.5 text-teal-100 hover:text-amber-300 hover:bg-[#006e7a] rounded-lg transition-colors border border-teal-600/50 cursor-pointer"
+                    className="p-2 bg-[#006e7a] hover:bg-teal-700/80 text-teal-100 hover:text-amber-300 rounded-xl transition-colors border border-teal-600/60 cursor-pointer"
                   >
                     <Download className="w-4 h-4" />
                   </button>
@@ -205,11 +202,11 @@ export const Navbar: React.FC = () => {
                 <div className="relative">
                   <button
                     onClick={() => setShowNotifications(!showNotifications)}
-                    className="relative p-1.5 text-teal-100 hover:text-white hover:bg-[#006e7a] rounded-lg transition-colors border border-teal-600/50 cursor-pointer"
+                    className="relative p-2 bg-[#006e7a] hover:bg-teal-700/80 text-teal-100 hover:text-white rounded-xl transition-colors border border-teal-600/60 cursor-pointer"
                   >
                     <Bell className="w-4 h-4" />
                     {unreadCount > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-amber-400 text-slate-950 text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center animate-pulse shadow-md">
+                      <span className="absolute -top-1 -right-1 bg-amber-400 text-slate-950 text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center animate-pulse shadow-xs">
                         {unreadCount}
                       </span>
                     )}
@@ -263,11 +260,11 @@ export const Navbar: React.FC = () => {
                 </div>
 
                 {/* Active User Switcher */}
-                <div className="flex items-center gap-1.5 bg-[#006e7a] px-2.5 py-1 rounded-xl border border-teal-600/60 shadow-inner">
+                <div className="flex items-center gap-1.5 bg-[#006e7a] px-2.5 py-1.5 rounded-xl border border-teal-600/60 shadow-inner">
                   {currentUser.role === 'super' ? (
-                    <ShieldCheck className="w-4 h-4 text-amber-300" />
+                    <ShieldCheck className="w-4 h-4 text-amber-300 shrink-0" />
                   ) : (
-                    <User className="w-4 h-4 text-teal-200" />
+                    <User className="w-4 h-4 text-teal-200 shrink-0" />
                   )}
                   <select
                     value={currentUser.id}

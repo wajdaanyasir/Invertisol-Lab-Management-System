@@ -36,6 +36,11 @@
 
 /* Print and PDF Export Styles */
 @media print {
+  @page {
+    size: A4 portrait;
+    margin: 8mm;
+  }
+
   /* Hide non-printable app UI elements */
   header,
   aside,
@@ -76,7 +81,7 @@
   }
 
   #printable-area {
-    padding: 1rem !important;
+    padding: 0 !important;
     margin: 0 !important;
     width: 100% !important;
     background: #ffffff !important;

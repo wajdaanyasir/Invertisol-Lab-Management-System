@@ -28,8 +28,25 @@ import {
   MapPin,
   Save,
   Phone,
+  Server,
+  RefreshCw,
+  Copy,
+  Check,
+  FileCode,
+  HardDrive,
+  KeyRound,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { UserRole } from '../../types';
+import {
+  getPhpHostConfig,
+  savePhpHostConfig,
+  testPhpConnection,
+  pushStateToPhp,
+  pullStateFromPhp,
+  PhpHostConfig,
+} from '../../services/phpApiService';
 
 export const SettingsTab: React.FC = () => {
   const {
@@ -49,6 +66,11 @@ export const SettingsTab: React.FC = () => {
     updateUserTabs,
     deleteUser,
     downloadDatabase,
+    bulkImportState,
+    jobs,
+    inventory,
+    transactions,
+    expenseCategories,
     currentUser,
     appTheme,
     setAppTheme,
@@ -59,12 +81,50 @@ export const SettingsTab: React.FC = () => {
     labHelplinePhone,
     labAddress,
     updateLabContactInfo,
+    adminPin,
+    updateAdminPin,
     t,
   } = useApp();
 
   const [activeSubTab, setActiveSubTab] = useState<
-    'branding' | 'franchises' | 'accounts' | 'rates' | 'users' | 'backup'
+    'branding' | 'franchises' | 'accounts' | 'rates' | 'users' | 'php_hosting' | 'backup'
   >('branding');
+
+  // Admin Security PIN State
+  const [newPinInput, setNewPinInput] = useState('');
+  const [confirmPinInput, setConfirmPinInput] = useState('');
+  const [showPinFields, setShowPinFields] = useState(false);
+  const [pinMsg, setPinMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const handleUpdatePin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPinInput.trim() || newPinInput.trim().length < 3) {
+      setPinMsg({ type: 'error', text: 'New PIN must be at least 3 characters long.' });
+      return;
+    }
+    if (newPinInput !== confirmPinInput) {
+      setPinMsg({ type: 'error', text: 'New PIN and Confirm PIN do not match.' });
+      return;
+    }
+    const success = updateAdminPin(newPinInput.trim());
+    if (success) {
+      setPinMsg({ type: 'success', text: 'Admin PIN updated successfully! Future portal logins will use your new PIN.' });
+      setNewPinInput('');
+      setConfirmPinInput('');
+      setTimeout(() => setPinMsg(null), 4000);
+    } else {
+      setPinMsg({ type: 'error', text: 'Failed to update PIN.' });
+    }
+  };
+
+  // PHP Hosting Sync State
+  const [phpConfig, setPhpConfig] = useState<PhpHostConfig>(getPhpHostConfig());
+  const [testingConnection, setTestingConnection] = useState(false);
+  const [connTestResult, setConnTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [syncingData, setSyncingData] = useState(false);
+  const [syncResult, setSyncResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [copiedSchema, setCopiedSchema] = useState(false);
+  const [copiedApiPhp, setCopiedApiPhp] = useState(false);
 
   const [resetLogoConfirm, setResetLogoConfirm] = useState(false);
   const [bankToDelete, setBankToDelete] = useState<{ id: string; name: string } | null>(null);
@@ -80,6 +140,67 @@ export const SettingsTab: React.FC = () => {
     setPhoneInput(labHelplinePhone);
     setAddressInput(labAddress);
   }, [labHelplinePhone, labAddress]);
+
+  // PHP Hosting Sync Handlers
+  const handleTestPhpConnection = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setTestingConnection(true);
+    setConnTestResult(null);
+    savePhpHostConfig(phpConfig);
+    const res = await testPhpConnection(phpConfig.phpHostUrl, phpConfig.apiKey);
+    setTestingConnection(false);
+    setConnTestResult(res);
+  };
+
+  const handlePushDataToPhp = async () => {
+    if (!phpConfig.phpHostUrl) {
+      alert('Please enter your PHP API Endpoint URL first.');
+      return;
+    }
+    setSyncingData(true);
+    setSyncResult(null);
+    savePhpHostConfig(phpConfig);
+    const res = await pushStateToPhp(phpConfig.phpHostUrl, phpConfig.apiKey, {
+      jobs,
+      inventory,
+      cashTransactions: transactions,
+      expenseCategories,
+      franchises,
+      wallets,
+      banks,
+      scheduleCharges,
+      users,
+    });
+    setSyncingData(false);
+    setSyncResult(res);
+    setPhpConfig(getPhpHostConfig());
+  };
+
+  const handlePullDataFromPhp = async () => {
+    if (!phpConfig.phpHostUrl) {
+      alert('Please enter your PHP API Endpoint URL first.');
+      return;
+    }
+    if (!confirm('Pulling data from PHP server will replace local state with MySQL server data. Continue?')) {
+      return;
+    }
+    setSyncingData(true);
+    setSyncResult(null);
+    const res = await pullStateFromPhp(phpConfig.phpHostUrl, phpConfig.apiKey);
+    setSyncingData(false);
+    if (res.success && res.data) {
+      bulkImportState(res.data);
+      setSyncResult({ success: true, message: 'Local data successfully updated from PHP MySQL server!' });
+    } else {
+      setSyncResult({ success: false, message: res.message });
+    }
+  };
+
+  const handleSavePhpConfig = (e: React.FormEvent) => {
+    e.preventDefault();
+    savePhpHostConfig(phpConfig);
+    alert('PHP Hosting Database settings saved!');
+  };
 
   const handleSaveContactInfo = (e: React.FormEvent) => {
     e.preventDefault();
@@ -212,11 +333,12 @@ export const SettingsTab: React.FC = () => {
       {/* Sub-Tabs */}
       <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-xl border border-slate-200 overflow-x-auto">
         {[
-          { id: 'branding', label: 'Branding, Logo & Language', icon: ImageIcon },
+          { id: 'branding', label: 'Branding, Security PIN & Language', icon: ImageIcon },
           { id: 'franchises', label: 'Referral Franchises', icon: Share2 },
           { id: 'accounts', label: 'Banks & Mobile Wallets', icon: Landmark },
           { id: 'rates', label: 'Service Charge Rates', icon: Sliders },
           { id: 'users', label: 'Staff User Accounts', icon: Users },
+          { id: 'php_hosting', label: 'PHP & MySQL Hosting', icon: Server },
           { id: 'backup', label: 'Database Backup', icon: Database },
         ].map((tab) => {
           const Icon = tab.icon;
@@ -452,6 +574,92 @@ export const SettingsTab: React.FC = () => {
                 >
                   <Save className="w-4 h-4" />
                   <span>Update Contact Details</span>
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Admin Security PIN Management Card */}
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <Lock className="w-4 h-4 text-[#008b9b]" />
+                <span>Admin Portal PIN & Security Settings</span>
+              </h2>
+              {pinMsg && (
+                <span
+                  className={`text-[11px] font-bold px-3 py-1 rounded-full flex items-center gap-1 ${
+                    pinMsg.type === 'success'
+                      ? 'bg-emerald-100 text-emerald-800'
+                      : 'bg-rose-100 text-rose-800'
+                  }`}
+                >
+                  {pinMsg.type === 'success' ? (
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  ) : (
+                    <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                  )}
+                  <span>{pinMsg.text}</span>
+                </span>
+              )}
+            </div>
+
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Change the PIN or Password required to unlock the Admin & Staff Back-Office Portal.
+            </p>
+
+            <form onSubmit={handleUpdatePin} className="space-y-4 text-xs font-bold">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-slate-700 flex items-center gap-1.5">
+                    <KeyRound className="w-3.5 h-3.5 text-[#008b9b]" />
+                    <span>New Admin Security PIN</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPinFields ? 'text' : 'password'}
+                      value={newPinInput}
+                      onChange={(e) => setNewPinInput(e.target.value)}
+                      placeholder="Enter new PIN / Password"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:border-[#008b9b] font-mono text-slate-900 bg-slate-50 pr-10"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPinFields(!showPinFields)}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
+                    >
+                      {showPinFields ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-slate-700 flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-[#008b9b]" />
+                    <span>Confirm New PIN</span>
+                  </label>
+                  <input
+                    type={showPinFields ? 'text' : 'password'}
+                    value={confirmPinInput}
+                    onChange={(e) => setConfirmPinInput(e.target.value)}
+                    placeholder="Re-enter new PIN"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:border-[#008b9b] font-mono text-slate-900 bg-slate-50"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-2">
+                <p className="text-[11px] text-slate-500 font-normal">
+                  Current PIN format: <span className="font-mono font-bold text-slate-800">{adminPin.length} characters</span>
+                </p>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 bg-[#008b9b] hover:bg-[#007280] text-white text-xs font-bold rounded-xl flex items-center gap-2 cursor-pointer shadow-md transition-colors"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>Update Admin PIN</span>
                 </button>
               </div>
             </form>
@@ -823,6 +1031,247 @@ export const SettingsTab: React.FC = () => {
                   )}
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SUB-TAB: PHP & MYSQL HOSTING DATABASE SYNC */}
+      {activeSubTab === 'php_hosting' && (
+        <div className="space-y-6">
+          <div className="bg-gradient-to-r from-slate-900 to-teal-950 text-white rounded-2xl p-6 shadow-md border border-slate-800">
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-2">
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-teal-500/20 text-teal-300 border border-teal-500/30 rounded-full text-xs font-bold uppercase tracking-wider">
+                  <Server className="w-3.5 h-3.5" />
+                  <span>PHP & MySQL Hosting Integration</span>
+                </div>
+                <h2 className="text-xl font-black text-white">PHP Server Database Sync Engine</h2>
+                <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
+                  Connect your InvertiSOL Lab software directly to any standard PHP-supported hosting server (cPanel, Hostinger, Bluehost, GoDaddy, Plesk, Apache/Nginx). All jobs, inventory, billing, and transactions will sync seamlessly to your online MySQL database.
+                </p>
+              </div>
+              <div className="hidden sm:block text-right">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Sync Status</span>
+                {phpConfig.lastSyncStatus === 'success' ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-lg text-xs font-bold">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <span>Connected & Synced</span>
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-lg text-xs font-bold">
+                    <HardDrive className="w-4 h-4 text-amber-400" />
+                    <span>Local / Standalone Mode</span>
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* CARD 1: PHP API ENDPOINT CONFIGURATION */}
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-5">
+              <div className="border-b border-slate-200 pb-3 flex items-center justify-between">
+                <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-[#008b9b]" />
+                  <span>PHP Server Connection Settings</span>
+                </h2>
+                {phpConfig.lastSyncedAt && (
+                  <span className="text-[11px] text-slate-500 font-mono">
+                    Last Sync: {phpConfig.lastSyncedAt}
+                  </span>
+                )}
+              </div>
+
+              <form onSubmit={handleSavePhpConfig} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    PHP API Endpoint URL:
+                  </label>
+                  <input
+                    type="url"
+                    value={phpConfig.phpHostUrl}
+                    onChange={(e) => setPhpConfig({ ...phpConfig, phpHostUrl: e.target.value })}
+                    placeholder="https://your-domain.com/api.php"
+                    className="w-full px-3.5 py-2.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#008b9b] focus:border-[#008b9b] outline-none font-mono"
+                  />
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    The full web URL where you uploaded <code className="bg-slate-100 px-1 py-0.5 rounded text-slate-800">api.php</code> on your PHP host.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    API Secret Key (Optional Security Header):
+                  </label>
+                  <input
+                    type="password"
+                    value={phpConfig.apiKey}
+                    onChange={(e) => setPhpConfig({ ...phpConfig, apiKey: e.target.value })}
+                    placeholder="Leave blank or enter API_SECRET_KEY from api.php"
+                    className="w-full px-3.5 py-2.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#008b9b] focus:border-[#008b9b] outline-none font-mono"
+                  />
+                </div>
+
+                <div className="pt-2 border-t border-slate-100">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={phpConfig.autoSyncEnabled}
+                      onChange={(e) => {
+                        const updated = { ...phpConfig, autoSyncEnabled: e.target.checked };
+                        setPhpConfig(updated);
+                        savePhpHostConfig(updated);
+                      }}
+                      className="w-4 h-4 text-[#008b9b] rounded border-slate-300 focus:ring-[#008b9b] cursor-pointer"
+                    />
+                    <div>
+                      <span className="text-xs font-bold text-slate-800 block">Enable Real-time Background Auto-Sync</span>
+                      <span className="text-[11px] text-slate-500 block">
+                        Automatically pushes job, billing, and inventory changes to your PHP MySQL server in real-time.
+                      </span>
+                    </div>
+                  </label>
+                </div>
+
+                {/* Connection Test Result Indicator */}
+                {connTestResult && (
+                  <div
+                    className={`p-3 rounded-xl text-xs flex items-start gap-2 border ${
+                      connTestResult.success
+                        ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                        : 'bg-rose-50 text-rose-800 border-rose-200'
+                    }`}
+                  >
+                    {connTestResult.success ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    ) : (
+                      <XCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                    )}
+                    <div>
+                      <p className="font-bold">{connTestResult.success ? 'PHP Connection Successful!' : 'Connection Failed'}</p>
+                      <p className="mt-0.5">{connTestResult.message}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Data Sync Result Indicator */}
+                {syncResult && (
+                  <div
+                    className={`p-3 rounded-xl text-xs flex items-start gap-2 border ${
+                      syncResult.success
+                        ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                        : 'bg-amber-50 text-amber-800 border-amber-200'
+                    }`}
+                  >
+                    {syncResult.success ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    ) : (
+                      <XCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                    )}
+                    <div>
+                      <p className="font-bold">{syncResult.success ? 'Sync Completed' : 'Sync Error'}</p>
+                      <p className="mt-0.5">{syncResult.message}</p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex flex-wrap items-center gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={handleTestPhpConnection}
+                    disabled={testingConnection}
+                    className="flex-1 min-w-[140px] px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs shadow-sm transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    {testingConnection ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5 text-amber-400" />}
+                    <span>{testingConnection ? 'Testing...' : 'Test Connection'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handlePushDataToPhp}
+                    disabled={syncingData}
+                    className="px-4 py-2.5 bg-[#008b9b] hover:bg-[#006673] text-white font-bold rounded-xl text-xs shadow-sm transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    {syncingData ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                    <span>Push Local to PHP</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handlePullDataFromPhp}
+                    disabled={syncingData}
+                    className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs shadow-sm transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    {syncingData ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                    <span>Pull Server Data</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* CARD 2: SERVER FILES & DEPLOYMENT GUIDE */}
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-4">
+              <div className="border-b border-slate-200 pb-3">
+                <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <FileCode className="w-4 h-4 text-[#008b9b]" />
+                  <span>PHP Host Deployment Files</span>
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Download or copy these two backend files to deploy on your cPanel / PHP web host:
+                </p>
+              </div>
+
+              {/* Downloads & Copy Links */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-xs font-bold text-slate-900">api.php</span>
+                    <span className="text-[10px] font-bold bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded">PHP Script</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    REST API backend that handles database queries and JSON syncing.
+                  </p>
+                  <a
+                    href="/api.php"
+                    download="api.php"
+                    className="inline-flex items-center gap-1 text-xs font-bold text-[#008b9b] hover:underline"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Download api.php</span>
+                  </a>
+                </div>
+
+                <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-xs font-bold text-slate-900">schema.sql</span>
+                    <span className="text-[10px] font-bold bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">MySQL Schema</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    Database tables and indexes for MySQL / MariaDB on cPanel.
+                  </p>
+                  <a
+                    href="/schema.sql"
+                    download="schema.sql"
+                    className="inline-flex items-center gap-1 text-xs font-bold text-[#008b9b] hover:underline"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Download schema.sql</span>
+                  </a>
+                </div>
+              </div>
+
+              {/* Step-by-Step Setup Guide */}
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs text-slate-700 space-y-2">
+                <p className="font-bold text-slate-900 border-b pb-1">5-Step Hosting Installation Guide:</p>
+                <ol className="list-decimal list-inside space-y-1.5 text-[11.5px] leading-relaxed">
+                  <li>Log into your web hosting cPanel / Plesk and open <strong>MySQL Databases</strong>.</li>
+                  <li>Create a new database (e.g. <code className="bg-white px-1 py-0.5 rounded border border-slate-300 font-mono">invertisol_lab</code>) and assign a user with full privileges.</li>
+                  <li>Open <strong>phpMyAdmin</strong>, select your database, and import <code className="bg-white px-1 py-0.5 rounded border border-slate-300 font-mono">schema.sql</code>.</li>
+                  <li>Upload <code className="bg-white px-1 py-0.5 rounded border border-slate-300 font-mono">api.php</code> to your hosting <code className="bg-white px-1 py-0.5 rounded border border-slate-300 font-mono">public_html</code> or website folder.</li>
+                  <li>Open <code className="bg-white px-1 py-0.5 rounded border border-slate-300 font-mono">api.php</code> in File Manager and enter your DB credentials (<code className="font-mono text-slate-900 font-bold">DB_NAME, DB_USER, DB_PASS</code>).</li>
+                </ol>
+              </div>
             </div>
           </div>
         </div>

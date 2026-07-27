@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { Lock, KeyRound, Eye, EyeOff, ShieldAlert, X, Zap, CheckCircle2 } from 'lucide-react';
+import { Lock, KeyRound, Eye, EyeOff, ShieldAlert, X, Zap } from 'lucide-react';
 
 export const AdminLoginModal: React.FC = () => {
   const { showAdminLoginModal, setShowAdminLoginModal, unlockAdmin } = useApp();
@@ -22,7 +22,7 @@ export const AdminLoginModal: React.FC = () => {
       setPassword('');
       setErrorMsg('');
     } else {
-      setErrorMsg('Invalid password! Default Staff PIN is 1234.');
+      setErrorMsg('Invalid password or PIN. Access denied.');
     }
   };
 
@@ -64,7 +64,7 @@ export const AdminLoginModal: React.FC = () => {
           </p>
 
           {errorMsg && (
-            <div className="bg-rose-50 border border-rose-200 text-rose-700 px-3.5 py-2.5 rounded-xl text-xs flex items-center gap-2 font-semibold">
+            <div className="bg-rose-50 border border-rose-200 text-rose-700 px-3.5 py-2.5 rounded-xl text-xs flex items-center gap-2 font-semibold animate-in fade-in">
               <ShieldAlert className="w-4 h-4 text-rose-600 shrink-0" />
               <span>{errorMsg}</span>
             </div>
@@ -85,7 +85,7 @@ export const AdminLoginModal: React.FC = () => {
                   setPassword(e.target.value);
                   setErrorMsg('');
                 }}
-                placeholder="Enter password (Default: 1234)"
+                placeholder="Enter Staff PIN or Password"
                 autoFocus
                 className="w-full bg-slate-50 border border-slate-300 focus:border-[#008b9b] focus:ring-2 focus:ring-[#008b9b]/20 rounded-xl py-3 pl-10 pr-10 text-sm font-bold text-slate-900 transition-all focus:outline-none"
               />
@@ -96,20 +96,6 @@ export const AdminLoginModal: React.FC = () => {
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
-            </div>
-          </div>
-
-          {/* Password Hint Box */}
-          <div className="bg-teal-50/80 border border-teal-200/80 rounded-2xl p-3 flex items-start gap-2.5">
-            <CheckCircle2 className="w-4 h-4 text-[#008b9b] shrink-0 mt-0.5" />
-            <div className="text-[11px] text-teal-900">
-              <span className="font-bold text-[#008b9b]">Default Staff PIN: </span>
-              <span className="font-mono bg-white px-1.5 py-0.5 rounded border border-teal-200 font-bold text-slate-900 ml-1">
-                1234
-              </span>
-              <p className="text-[10px] text-teal-700 mt-0.5">
-                (You can also use <code className="bg-white px-1 rounded font-mono text-slate-800">admin123</code> or <code className="bg-white px-1 rounded font-mono text-slate-800">admin</code>)
-              </p>
             </div>
           </div>
 
